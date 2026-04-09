@@ -170,6 +170,30 @@ function applyEditorPreviewOverrides(igInstance: Infographic) {
   }
 }
 
+function getInitialPreviewOptionsFromDsl(dsl: string): Pick<InfographicOptions, 'theme' | 'themeConfig'> {
+  let theme: string | undefined;
+  let themeConfig: Record<string, string> | undefined;
+
+  if (themeOverride !== null) {
+    theme = themeOverride;
+  } else {
+    const parsed = parseRootThemeFromDsl(dsl);
+    theme = parsed?.theme;
+    if (parsed?.themeConfig && Object.keys(parsed.themeConfig).length > 0) {
+      themeConfig = { ...parsed.themeConfig };
+    }
+  }
+
+  if (paletteOverride !== null) {
+    themeConfig = { ...(themeConfig ?? {}), palette: paletteOverride };
+  }
+
+  return {
+    ...(theme ? { theme } : {}),
+    ...(themeConfig ? { themeConfig } : {}),
+  };
+}
+
 /** 与 Mermaid-Chart vscode-mermaid-chart Sidebar 相同的 SVG（mask/clip 完整） */
 function toolbarMcIcon(svgHtml: string, title: string): HTMLButtonElement {
   const b = document.createElement('button');
@@ -1062,11 +1086,13 @@ function render(content: string, width: number | string, height: number | string
   canvas.style.boxSizing = 'border-box';
   host.appendChild(canvas);
 
+  const initialOptions = getInitialPreviewOptionsFromDsl(content);
   const next = new Infographic({
     container: canvas,
     width,
     height,
     editable: true,
+    ...initialOptions,
   });
   ig = next;
   next.on('options:change', () => pushVisual());
@@ -1084,7 +1110,6 @@ function render(content: string, width: number | string, height: number | string
     lastW = width;
     lastH = height;
     next.render(content);
-    applyEditorPreviewOverrides(next);
     lastRendered = lastDsl;
     setPanMode(false);
     ensurePanzoom(resetView);

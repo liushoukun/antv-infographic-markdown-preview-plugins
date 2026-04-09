@@ -1,5 +1,10 @@
 # 变更日志
 
+## 0.4.0
+
+- 修复编辑器侧边栏单独渲染时 `theme hand-drawn` 字体不一致问题
+- 优化侧边栏 Webview 渲染初始化与 CSP 字体/样式加载策略，提升主题字体加载稳定性
+
 ## 0.1.0
 
 - 首次发布：Markdown 内 `infographic` 围栏代码块语法高亮（TextMate 注入 + `source.infographic`）

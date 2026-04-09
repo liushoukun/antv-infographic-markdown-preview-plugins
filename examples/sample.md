@@ -55,6 +55,5 @@ data
       time 2023
       icon mingcute/rocket-line
       illus creativity
-theme light
-  palette antv
+theme hand-drawn
 ```

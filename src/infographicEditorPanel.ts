@@ -65,8 +65,10 @@ export class InfographicEditorPanel {
       `default-src 'none';`,
       /* AntV PNG 导出在内部用 Image 加载 data:/blob: SVG，须放行（否则报 Image load failed） */
       `img-src data: blob: ${wc};`,
-      `font-src data: ${wc};`,
-      `style-src ${wc} 'unsafe-inline';`,
+      /* hand-drawn 主题可能通过远程样式/字体加载中文手写字形 */
+      `font-src data: https: ${wc};`,
+      `style-src https: ${wc} 'unsafe-inline';`,
+      `connect-src https: ${wc};`,
       `script-src 'nonce-${n}';`,
     ].join(' ');
     this.panel.webview.html = `<!DOCTYPE html>
