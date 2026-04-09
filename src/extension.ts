@@ -8,6 +8,63 @@ import { SaveHandler } from './saveHandler';
 import { SyncService } from './syncService';
 import { TempFileCache } from './tempFileCache';
 
+const ICONIFY_SVG_ENDPOINT = 'https://api.iconify.design';
+const ICON_ID_RE = /^[a-z0-9-]+\/[a-z0-9-]+$/i;
+const iconDataUriCache = new Map<string, string>();
+const iconFetchPending = new Set<string>();
+let previewRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+
+function toSvgDataUri(svgText: string): string {
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svgText)}`;
+}
+
+function schedulePreviewRefresh() {
+  if (previewRefreshTimer) {
+    clearTimeout(previewRefreshTimer);
+  }
+  previewRefreshTimer = setTimeout(() => {
+    previewRefreshTimer = undefined;
+    void vscode.commands.executeCommand('markdown.preview.refresh');
+  }, 120);
+}
+
+async function fetchAndCacheRemoteIcon(iconId: string): Promise<void> {
+  if (!ICON_ID_RE.test(iconId)) {
+    return;
+  }
+  if (iconDataUriCache.has(iconId) || iconFetchPending.has(iconId)) {
+    return;
+  }
+  iconFetchPending.add(iconId);
+  try {
+    const resp = await fetch(`${ICONIFY_SVG_ENDPOINT}/${iconId}.svg`);
+    if (!resp.ok) {
+      return;
+    }
+    const svgText = await resp.text();
+    if (!svgText.trim().startsWith('<svg')) {
+      return;
+    }
+    iconDataUriCache.set(iconId, toSvgDataUri(svgText));
+    schedulePreviewRefresh();
+  } catch {
+    // 远程失败时保持原始 icon id，不中断渲染
+  } finally {
+    iconFetchPending.delete(iconId);
+  }
+}
+
+function rewriteDslIconsForPreview(dsl: string): string {
+  return dsl.replace(/^(\s*icon\s+)([a-z0-9-]+\/[a-z0-9-]+)(\s*)$/gim, (_m, p1, iconId, p3) => {
+    const cached = iconDataUriCache.get(iconId);
+    if (cached) {
+      return `${p1}${cached}${p3}`;
+    }
+    void fetchAndCacheRemoteIcon(iconId);
+    return `${p1}${iconId}${p3}`;
+  });
+}
+
 /**
  * 为 infographic 围栏块包一层稳定容器，便于预览脚本定位（见 markdown 扩展指南）。
  */
@@ -29,7 +86,8 @@ function extendMarkdownIt(md: MarkdownIt): MarkdownIt {
     const lang = info.split(/\s+/)[0] ?? '';
 
     if (lang === 'infographic') {
-      const escaped = md.utils.escapeHtml(token.content);
+      const rewritten = rewriteDslIconsForPreview(token.content);
+      const escaped = md.utils.escapeHtml(rewritten);
       return `<div class="vscode-infographic-host" data-vscode-infographic="1"><pre><code class="language-infographic">${escaped}</code></pre></div>\n`;
     }
 
