@@ -1,11 +1,7 @@
-# AntV Infographic for VS Code
+# AntV Infographic Markdown Preview
 
 一个面向 VS Code Markdown 工作流的 Infographic 预览扩展。  
 你可以在 Markdown 中直接编写 `infographic` 代码块，并在预览面板中即时看到渲染结果。
-
-灵感与体验目标参考了 [Mermaid Viewer](https://github.com/onlyutkarsh/mermaid-viewer) 这类“编辑器内编写 + 预览增强”的扩展形态。
-
-
 
 ## Features
 
@@ -15,6 +11,7 @@
 - **本地工作流友好**：无需外部服务，直接在 VS Code 中编写和预览。
 
 ## Demo
+
 ![Demo](./media/demo/demo-1.png)
 
 ## Usage

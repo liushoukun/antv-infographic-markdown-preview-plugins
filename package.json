@@ -1,8 +1,8 @@
 {
   "name": "vscode-antv-infographic",
-  "displayName": "AntV Infographic for Markdown",
+  "displayName": "AntV Infographic Markdown Preview",
   "description": "在 Markdown 中为 AntV Infographic 提供语法高亮与预览渲染。",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "liushoukun",
   "icon": "media/images/logo.png",
   "repository": {
@@ -17,7 +17,7 @@
   },
   "categories": [
     "Programming Languages",
-    "Other"
+    "Visualization"
   ],
   "keywords": [
     "markdown",
