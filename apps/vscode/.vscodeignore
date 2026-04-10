@@ -1,0 +1,13 @@
+# 开发源码与构建配置（不打进 VSIX）
+src/**
+esbuild.config.mjs
+tsconfig.json
+node_modules/**
+
+# 调试与 source map
+.vscode/**
+.vscode-test/**
+**/*.map
+
+# 其它
+pnpm-lock.yaml
