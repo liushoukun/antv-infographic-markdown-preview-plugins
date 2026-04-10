@@ -1,5 +1,11 @@
 # 变更日志
 
+## 0.8.0
+
+- **修复** Markdown 中 ` ```infographic ` 围栏内无语法高亮：改为向 `markup.fenced_code.block.markdown` 注入（与 VS Code 内置 markdown-math 围栏机制一致），在未知语言围栏内用 `\G` 匹配语言标识后再套 `source.infographic`
+- **改进** `syntaxes/infographic.tmLanguage.json`：对齐仓库语法规范——`infographic` 整行入口、`theme`/`template` 同行名称、点号路径键、列表项 `-` 与行尾值域、`meta.value` 避免值域误标
+- **调整** `language-configuration.json` 缩进规则：去掉不适配 DSL 的 YAML 风格 `:` 规则，在块关键字行与列表 `- ` 后增加缩进
+
 ## 0.7.1
 
 - 修复侧边栏「导出为图片」时 PNG/SVG 与画布预览**字体不一致**：`data:` 栅格化脱离文档后无法继承 VS Code 与主题 Web 字体

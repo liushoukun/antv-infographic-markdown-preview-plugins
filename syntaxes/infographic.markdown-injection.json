@@ -1,20 +1,25 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "fileTypes": [],
   "scopeName": "markdown.infographic.codeblock",
-  "injectionSelector": "L:text.html.markdown",
-  "patterns": [
-    {
-      "begin": "(^|\\G)(\\s*)([`~]{3,})\\s*(?i:infographic)\\s*$",
+  "injectionSelector": "L:markup.fenced_code.block.markdown",
+  "patterns": [{ "include": "#infographic-code-block" }],
+  "repository": {
+    "infographic-code-block": {
+      "begin": "\\G((?i:infographic))(\\s+[^`~]*)?$",
+      "end": "(^|\\G)(?=\\s*[`~]{3,}\\s*$)",
       "beginCaptures": {
-        "2": { "name": "punctuation.whitespace.markdown.leading" },
-        "3": { "name": "punctuation.definition.markdown" }
+        "1": { "name": "fenced_code.block.language.markdown" },
+        "2": { "name": "fenced_code.block.language.attributes.markdown" }
       },
-      "end": "(^|\\G)(\\s*)([`~]{3,})\\s*$",
-      "endCaptures": {
-        "3": { "name": "punctuation.definition.markdown" }
-      },
-      "contentName": "meta.embedded.block.infographic.markdown",
-      "patterns": [{ "include": "source.infographic" }]
+      "patterns": [
+        {
+          "begin": "(^|\\G)(\\s*)(.*)",
+          "while": "(^|\\G)(?!\\s*([`~]{3,})\\s*$)",
+          "contentName": "meta.embedded.block.infographic",
+          "patterns": [{ "include": "source.infographic" }]
+        }
+      ]
     }
-  ]
+  }
 }

@@ -22,7 +22,7 @@
     ["'", "'"]
   ],
   "indentationRules": {
-    "increaseIndentPattern": "^\\s*.*:\\s*$|^\\s*-\\s+",
+    "increaseIndentPattern": "^\\s*(?:infographic\\s+[-\\w]+|data|theme|template|design)\\s*$|^\\s*-\\s+",
     "decreaseIndentPattern": "^\\s*[}\\]]\\s*$"
   }
 }

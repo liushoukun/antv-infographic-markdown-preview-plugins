@@ -4,8 +4,10 @@
   "scopeName": "source.infographic",
   "patterns": [
     { "include": "#comments" },
-    { "include": "#keywords" },
-    { "include": "#list" },
+    { "include": "#infographic-declaration" },
+    { "include": "#theme-or-template-preset" },
+    { "include": "#block-header-line" },
+    { "include": "#key-value-line" },
     { "include": "#strings" }
   ],
   "repository": {
@@ -17,27 +19,51 @@
         }
       ]
     },
-    "keywords": {
+    "infographic-declaration": {
       "patterns": [
         {
-          "name": "keyword.control.infographic",
-          "match": "(?x) ^\\s* (?: infographic|data|theme|template|design)\\b"
-        },
-        {
-          "name": "entity.name.type.infographic",
-          "match": "(?x) ^\\s* infographic \\s+ [-\\w]+"
-        },
-        {
-          "name": "support.type.property-name.yaml",
-          "match": "(?x) ^\\s* (?: label|desc|title|value|name|type)\\b"
+          "match": "(?x) ^ \\s* (infographic) \\s+ ([-\\w]+) \\s* $",
+          "captures": {
+            "1": { "name": "keyword.control.infographic" },
+            "2": { "name": "entity.name.type.infographic" }
+          }
         }
       ]
     },
-    "list": {
+    "theme-or-template-preset": {
       "patterns": [
         {
-          "name": "punctuation.definition.list.begin.infographic",
-          "match": "^\\s*-\\s+"
+          "match": "(?x) ^ \\s* (theme) \\s+ (.+?) \\s* $",
+          "captures": {
+            "1": { "name": "keyword.control.infographic" },
+            "2": { "name": "string.unquoted.infographic" }
+          }
+        },
+        {
+          "match": "(?x) ^ \\s* (template) \\s+ (.+?) \\s* $",
+          "captures": {
+            "1": { "name": "keyword.control.infographic" },
+            "2": { "name": "entity.name.type.infographic" }
+          }
+        }
+      ]
+    },
+    "block-header-line": {
+      "patterns": [
+        {
+          "name": "keyword.control.infographic",
+          "match": "(?x) ^ \\s* (?: data | design | template | theme | infographic ) \\s* $"
+        }
+      ]
+    },
+    "key-value-line": {
+      "patterns": [
+        {
+          "match": "(?x) ^ \\s* (?: - \\s+ )? ([A-Za-z_][\\w.-]*) ( \\s+ .+ )? \\s* $",
+          "captures": {
+            "1": { "name": "support.type.property-name.infographic" },
+            "2": { "name": "meta.value.infographic" }
+          }
         }
       ]
     },
