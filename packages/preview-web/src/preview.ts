@@ -117,6 +117,28 @@ function installIconQueryFallback(): void {
   (globalThis as { __igIconFallbackInstalled__?: boolean }).__igIconFallbackInstalled__ = true;
 }
 
+/** 部分宿主（如 JetBrains Markdown）不注入外层 host，由脚本将围栏包进稳定容器。 */
+function ensureHostsFromCodeBlocks(): void {
+  const blocks = document.querySelectorAll<HTMLElement>('pre > code.language-infographic');
+  blocks.forEach((code) => {
+    const pre = code.parentElement;
+    if (!pre) {
+      return;
+    }
+
+    const existing = pre.parentElement;
+    if (existing?.matches?.(HOST_SELECTOR)) {
+      return;
+    }
+
+    const host = document.createElement('div');
+    host.className = 'vscode-infographic-host';
+    host.setAttribute(ATTR, '1');
+    pre.parentElement?.insertBefore(host, pre);
+    host.appendChild(pre);
+  });
+}
+
 function getSource(host: HTMLElement): string {
   const code = host.querySelector('code.language-infographic');
   if (code) {
@@ -188,6 +210,7 @@ function renderHost(host: HTMLElement) {
 }
 
 function scan() {
+  ensureHostsFromCodeBlocks();
   document.querySelectorAll<HTMLElement>(HOST_SELECTOR).forEach(renderHost);
 }
 

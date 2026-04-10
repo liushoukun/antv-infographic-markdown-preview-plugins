@@ -2,11 +2,11 @@
 
 在 JetBrains IDE 的 **Markdown 预览** 中渲染 `infographic` 围栏代码块（依赖官方 Markdown 插件）。
 
-插件在 JetBrains Marketplace / 插件页中的**名称、说明、图标**与仓库根目录 **VS Code 扩展**（`package.json` 的 `displayName`、`description`、`media/images/logo.svg`）及根目录 `README.md` / `DESIGN.md` 保持一致口径；图标文件复制为 `src/main/resources/META-INF/pluginIcon.svg`、`pluginLogo.svg`、`pluginIcon_dark.svg`（与上游 SVG 同步更新时请一并替换）。
+插件在 JetBrains Marketplace / 插件页中的**名称、说明、图标**与仓库内 **VS Code 扩展**（`apps/vscode-extension/package.json` 的 `displayName`、`description`、`apps/vscode-extension/media/images/logo.svg`）及仓库根目录 `README.md` / `DESIGN.md` 保持一致口径；图标文件复制为 `src/main/resources/META-INF/pluginIcon.svg`、`pluginLogo.svg`、`pluginIcon_dark.svg`（与上游 SVG 同步更新时请一并替换）。
 
 **语言与文件**
 
-- **语法高亮**：Markdown 中 ` ```infographic ` 围栏内注入 `AntVInfographic` 语言；独立 `*.infographic` 文件亦使用该语言（词法规则对齐仓库 `syntaxes/infographic.tmLanguage.json`）。
+- **语法高亮**：Markdown 中 ` ```infographic ` 围栏内注入 `AntVInfographic` 语言；独立 `*.infographic` 文件亦使用该语言（词法规则对齐 `apps/vscode-extension/syntaxes/infographic.tmLanguage.json`）。
 - **独立文件预览**：打开 `*.infographic` 时为「文本 + Preview」分栏（`TextEditorWithPreview`），预览页加载与 Markdown 相同的 `preview.js` / `preview.css`（需 JCEF）。示例：`examples/sample.infographic`。
 
 ## 环境要求
@@ -14,7 +14,7 @@
 | 依赖 | 说明 |
 |------|------|
 | **JDK 17** | Kotlin 编译目标为 17（见 `build.gradle.kts`） |
-| **Node.js** | 用于打包预览页面前端（esbuild + `@antv/infographic`） |
+| **Node.js + pnpm** | 仓库根目录安装依赖；Gradle 会调用 `pnpm` 构建共享包 `packages/preview-web`（esbuild + `@antv/infographic`） |
 | **Gradle** | 使用本目录已提交的 **Gradle Wrapper**（**8.10.2**）。请勿用本机 **Gradle 9.x** 直接执行 `gradle buildPlugin`，会与 `org.jetbrains.intellij` 1.17.4 不兼容 |
 
 默认调试/打包使用的 IDE 基线见 `gradle.properties`：
@@ -26,29 +26,19 @@
 
 ```mermaid
 flowchart LR
-  A[npm install] --> B[npm run build:web]
-  B --> C[生成 preview.js 等资源]
-  C --> D[Gradle buildPlugin / runIde]
-  D --> E[ZIP 分发包 或 沙箱 IDE]
+  A[仓库根: pnpm install] --> B[pnpm --filter @antv-infographic/preview-web build]
+  B --> C[packages/preview-web/dist/preview.js]
+  C --> D[Gradle processResources 同步到 resources/web]
+  D --> E[buildPlugin / runIde]
+  E --> F[ZIP 或沙箱 IDE]
 ```
 
-## 1. 安装依赖并构建 Web 资源
+## 1. 安装依赖与共享预览脚本
 
-在 **`apps/jetbrains-plugin`** 目录下执行：
+1. 在**仓库根目录**执行 **`pnpm install`**（仅需一次）。
+2. 构建 JetBrains 插件时，**`./gradlew buildPlugin`**（或 `processResources`）会自动执行 **`pnpm run --filter @antv-infographic/preview-web build`**，并将产物复制到 **`src/main/resources/web/preview.js`**（该文件已加入 `.gitignore`，勿手改）。
 
-```bash
-npm install
-npm run build:web
-```
-
-- 入口：`web-src/preview.ts`
-- 输出：`src/main/resources/web/preview.js`（由 esbuild 写入，提交前或 CI 中需先执行此步，否则插件包内脚本可能过旧）
-
-开发时可监听前端变更：
-
-```bash
-npm run watch:web
-```
+开发时若只改预览脚本：在根目录并行运行 **`pnpm --filter @antv-infographic/preview-web run watch`** 与 **`./gradlew runIde`**（保存后重新执行一次 `processResources` 或完整 `buildPlugin` 以刷新资源，视你的工作流而定）。
 
 ## 2. 打包插件（生成 ZIP）
 
@@ -74,7 +64,7 @@ npm run watch:web
 
 产物路径：
 
-- `build/distributions/jetbrains-antv-infographic-0.1.0.zip`（版本号与 `build.gradle.kts` 中 `version` 一致）
+- `build/distributions/jetbrains-antv-infographic-<version>.zip`（版本号与 `build.gradle.kts` 中 `version` 一致）
 
 ## 3. 本地测试
 
@@ -101,7 +91,7 @@ npm run watch:web
 ### 4.1 用沙箱 IDE 断点调试（Kotlin）
 
 1. 用 **IntelliJ IDEA** 打开本目录 `apps/jetbrains-plugin`。
-2. 终端执行 `npm run watch:web`（可选，改 `preview.ts` 时自动重新打包 `preview.js`）。
+2. 终端在仓库根执行 `pnpm --filter @antv-infographic/preview-web run watch`（可选）；改 `packages/preview-web` 后需让 Gradle 重新 `processResources` 或 `buildPlugin` 以更新插件内 `preview.js`。
 3. Gradle 面板运行 **`runIde`**，会启动带当前插件的干净 IDE。
 4. 在 Kotlin 源码里下断点（例如 `InfographicBrowserPreviewExtensionProvider`），沙箱 IDE 里打开 Markdown 预览即可命中。
 
@@ -133,7 +123,7 @@ JetBrains 文档说明：若 `plugin.xml` **只**声明对**其它插件**的依
   ```
   ````
 
-- 打包或 `runIde` 前执行过 **`npm run build:web`**，确认 `src/main/resources/web/preview.js` 已更新。
+- 打包或 `runIde` 时 Gradle 已执行 **`buildPreviewWeb`**；若手动跳过，请先在仓库根执行 **`pnpm --filter @antv-infographic/preview-web run build`**。
 - 在预览页开发者工具中查看是否有脚本/资源加载失败、控制台报错。
 - 确认使用的是 **内置 Markdown 预览**（本插件通过 `browserPreviewExtensionProvider` 注入脚本，依赖官方 Markdown 插件的预览管线）。
 
@@ -144,8 +134,8 @@ JetBrains 文档说明：若 `plugin.xml` **只**声明对**其它插件**的依
 | `build.gradle.kts` | 插件版本、Kotlin、IntelliJ Gradle 插件配置 |
 | `gradle.properties` | 平台类型与版本 |
 | `src/main/resources/META-INF/plugin.xml` | 插件 ID、说明、依赖 Markdown、扩展点注册 |
-| `src/main/resources/META-INF/pluginIcon*.svg`、`pluginLogo.svg` | 插件列表/详情图标（与仓库 `media/images/logo.svg` 同源） |
-| `package.json` | 前端构建脚本与 `@antv/infographic` 依赖 |
+| `src/main/resources/META-INF/pluginIcon*.svg`、`pluginLogo.svg` | 插件列表/详情图标（与 `apps/vscode-extension/media/images/logo.svg` 同源） |
+| `../../packages/preview-web` | 共享 Markdown 预览脚本源码与 esbuild 配置 |
 | `gradle/wrapper/`、`gradlew*` | Gradle Wrapper，固定使用 8.10.2 |
 
 更详细的技术说明见同目录下的 `jetbrains-infographic-preview-tech-plan.md`。

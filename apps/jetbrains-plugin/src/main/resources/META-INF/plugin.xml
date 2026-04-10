@@ -1,11 +1,11 @@
 <idea-plugin>
   <id>com.liushoukun.jetbrains.antv-infographic</id>
   <name>AntV Infographic Markdown Preview</name>
-  <vendor url="https://github.com/liushoukun/vscode-antv-infographic">liushoukun</vendor>
+  <vendor url="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins">liushoukun</vendor>
   <description><![CDATA[
 <h2>English</h2>
 <p>AntV Infographic Markdown Preview</p>
-<p>Renders <a href="https://github.com/antvis/infographic">AntV Infographic</a> DSL inside Markdown fenced blocks (<code>infographic</code> language) and in standalone <code>.infographic</code> files. Preview uses <code>@antv/infographic</code> (SVG) through the bundled Markdown preview and JCEF. Same scope as the <a href="https://github.com/liushoukun/vscode-antv-infographic/blob/main/README.md">repository README</a>; requires the official <b>Markdown</b> plugin. Samples: <a href="https://github.com/liushoukun/vscode-antv-infographic#demo">Demo</a>, <code>examples/sample.md</code>. License: <a href="https://github.com/liushoukun/vscode-antv-infographic/blob/main/LICENSE">MIT</a>. Engine: <a href="https://infographic.antv.vision">infographic.antv.vision</a>.</p>
+<p>Renders <a href="https://github.com/antvis/infographic">AntV Infographic</a> DSL inside Markdown fenced blocks (<code>infographic</code> language) and in standalone <code>.infographic</code> files. Preview uses <code>@antv/infographic</code> (SVG) through the bundled Markdown preview and JCEF. Same scope as the <a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/blob/main/README.md">repository README</a>; requires the official <b>Markdown</b> plugin. Samples: <a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins#demo">Demo</a>, <code>examples/sample.md</code>. License: <a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/blob/main/LICENSE">MIT</a>. Engine: <a href="https://infographic.antv.vision">infographic.antv.vision</a>.</p>
 <ul>
   <li><b>Markdown</b>: recognizes fenced code blocks with language <code>infographic</code>.</li>
   <li><b>Live preview</b>: renders SVG in the Markdown preview via <code>@antv/infographic</code>.</li>
@@ -16,7 +16,7 @@
 
 <h2>中文</h2>
 <p>AntV Infographic Markdown 预览</p>
-<p>在 JetBrains IDE 中预览 Infographic：支持 Markdown 中语言为 <code>infographic</code> 的围栏代码块，以及独立的 <code>.infographic</code> 文件；通过官方 <b>Markdown</b> 预览与 JCEF，使用 <code>@antv/infographic</code> 输出 SVG。与仓库 <a href="https://github.com/liushoukun/vscode-antv-infographic/blob/main/README.md">README</a> 描述一致。示例见 <a href="https://github.com/liushoukun/vscode-antv-infographic#demo">Demo</a> 与 <code>examples/sample.md</code>。许可：<a href="https://github.com/liushoukun/vscode-antv-infographic/blob/main/LICENSE">MIT</a>。上游：<a href="https://github.com/antvis/infographic">AntV Infographic</a> · <a href="https://infographic.antv.vision">infographic.antv.vision</a>。</p>
+<p>在 JetBrains IDE 中预览 Infographic：支持 Markdown 中语言为 <code>infographic</code> 的围栏代码块，以及独立的 <code>.infographic</code> 文件；通过官方 <b>Markdown</b> 预览与 JCEF，使用 <code>@antv/infographic</code> 输出 SVG。与仓库 <a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/blob/main/README.md">README</a> 描述一致。示例见 <a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins#demo">Demo</a> 与 <code>examples/sample.md</code>。许可：<a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/blob/main/LICENSE">MIT</a>。上游：<a href="https://github.com/antvis/infographic">AntV Infographic</a> · <a href="https://infographic.antv.vision">infographic.antv.vision</a>。</p>
 <ul>
   <li><b>Markdown 内嵌</b>：识别 <code>infographic</code> 围栏代码块。</li>
   <li><b>实时预览</b>：在 Markdown 预览中渲染 SVG。</li>

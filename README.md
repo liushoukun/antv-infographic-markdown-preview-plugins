@@ -1,16 +1,25 @@
-# AntV Infographic Markdown Preview
+# AntV Infographic Markdown Preview（多 IDE）
 
-VS Code 上的 AntV Infographic 扩展：支持在 Markdown 中内嵌预览，也支持独立的 `.infographic` 源文件。
+本仓库 **antv-infographic-markdown-preview-plugins** 为 monorepo，包含：
 
-## Features
+- **`packages/preview-web`**：Markdown 预览页注入的共享 `preview.js`（`@antv/infographic` 浏览器端打包）。
+- **`apps/vscode-extension`**：VS Code / Cursor 扩展（`vscode-antv-infographic`）。
+- **`apps/jetbrains-plugin`**：JetBrains IDE 插件（Gradle + Kotlin）。
 
-1. **Markdown 内嵌支持**：识别 ` ```infographic ` 围栏代码块，在 Markdown 预览中调用 `@antv/infographic` 即时渲染 SVG。
-2. **语法高亮**：为 Markdown 中 ` ```infographic ` 围栏与 `.infographic` 文件提供一致着色（TextMate 注入；v0.8.0 起修复编辑器内围栏块不着色问题）。
-3. **独立 `.infographic` 文件（v0.7.0+）**：资源管理器专用图标；打开工作区内的文件时，侧栏自动打开 **Infographic 编辑** Webview，便于可视化编辑、预览与导出图片等（与从 Markdown 打开的临时编辑缓冲区相区分）。
+## 开发
+
+- **安装依赖**（在仓库根目录）：`pnpm install`
+- **构建全部**：`pnpm run build`（先构建 `preview-web`，再构建 VS Code 扩展）
+- **VS Code 调试**：在根目录打开仓库，使用「Run Extension」；扩展路径为 `apps/vscode-extension`。
+- **JetBrains**：`./gradlew buildPlugin` 前需已安装 Node/pnpm，Gradle 会在 `processResources` 阶段调用根目录的 `pnpm run --filter @antv-infographic/preview-web build` 并同步 `preview.js`。
+
+## VS Code 扩展说明
+
+在 Markdown 中内嵌 ` ```infographic ` 围栏预览，并支持独立 `.infographic` 文件与侧栏可视化编辑等能力。
 
 ## Demo
 
-![Demo](./media/demo/demo-1.png)
+![Demo](./apps/vscode-extension/media/demo/demo-1.png)
 
 ## Usage
 

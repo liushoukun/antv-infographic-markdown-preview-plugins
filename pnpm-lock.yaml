@@ -6,7 +6,9 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  apps/vscode-extension:
     dependencies:
       '@antv/infographic':
         specifier: ^0.2.16
@@ -27,6 +29,19 @@ importers:
       '@vscode/vsce':
         specifier: ^3.7.1
         version: 3.7.1
+      esbuild:
+        specifier: ^0.24.2
+        version: 0.24.2
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/preview-web:
+    dependencies:
+      '@antv/infographic':
+        specifier: ^0.2.16
+        version: 0.2.16
+    devDependencies:
       esbuild:
         specifier: ^0.24.2
         version: 0.24.2

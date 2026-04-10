@@ -89,16 +89,16 @@ flowchart LR
 ## 5. 工程结构建议
 
 ```text
-jetbrains-antv-infographic/
+<monorepo>/packages/preview-web/
+  src/preview.ts                # 与 VS Code 共用的 Markdown 预览脚本（Gradle 构建时打入本插件 resources）
+apps/jetbrains-plugin/
   src/main/kotlin/
     ...                         # 插件入口与 Markdown 接入实现
   src/main/resources/
     META-INF/plugin.xml
     web/
-      preview.js
+      preview.js                # 由 Gradle syncPreviewJs 从 preview-web/dist 复制（通常不提交）
       preview.css
-  web-src/
-    preview.ts                  # 迁移自现有 VSCode 项目逻辑
   build.gradle.kts
   settings.gradle.kts
 ```
