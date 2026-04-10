@@ -2,7 +2,7 @@
 
 在 JetBrains IDE 的 **Markdown 预览** 中渲染 `infographic` 围栏代码块（依赖官方 Markdown 插件）。
 
-插件在 JetBrains Marketplace / 插件页中的**名称、说明、图标**与仓库内 **VS Code 扩展**（`apps/vscode/package.json` 的 `displayName`、`description`、`apps/vscode/media/images/logo.svg`）及仓库根目录 `README.md` / `DESIGN.md` 保持一致口径；图标文件复制为 `src/main/resources/META-INF/pluginIcon.svg`、`pluginLogo.svg`、`pluginIcon_dark.svg`（与上游 SVG 同步更新时请一并替换）。
+插件在 JetBrains Marketplace / 插件页中的**名称、说明、图标**与仓库内 **VS Code 扩展**（`apps/vscode/package.json` 的 `displayName`、`description`、`apps/vscode/media/images/logo.svg`）及仓库根目录 `README.md` / `docs/DESIGN.md` 保持一致口径；图标文件复制为 `src/main/resources/META-INF/pluginIcon.svg`、`pluginLogo.svg`、`pluginIcon_dark.svg`（与上游 SVG 同步更新时请一并替换）。
 
 **语言与文件**
 
