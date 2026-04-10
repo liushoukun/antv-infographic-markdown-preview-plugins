@@ -5,7 +5,11 @@
       "name": "Run Extension",
       "type": "extensionHost",
       "request": "launch",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}/apps/vscode"],
+      // 与 JetBrains runIde 一致：调试宿主启动后打开 monorepo 下 examples（请先以仓库根为工作区打开）
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/vscode",
+        "${workspaceFolder}/examples"
+      ],
       "outFiles": ["${workspaceFolder}/apps/vscode/dist/**/*.js"],
       "preLaunchTask": "${defaultBuildTask}"
     }

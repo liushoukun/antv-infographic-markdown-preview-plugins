@@ -4,24 +4,24 @@
   <vendor url="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins">liushoukun</vendor>
   <description><![CDATA[
 <h2>English</h2>
-<p>AntV Infographic Markdown Preview</p>
-<p>Renders <a href="https://github.com/antvis/infographic">AntV Infographic</a> DSL inside Markdown fenced blocks (<code>infographic</code> language) and in standalone <code>.infographic</code> files. Preview uses <code>@antv/infographic</code> (SVG) through the bundled Markdown preview and JCEF. Same scope as the <a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/blob/main/README.md">repository README</a>; requires the official <b>Markdown</b> plugin. Samples: <a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins#demo">Demo</a>, <code>examples/sample.md</code>. License: <a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/blob/main/LICENSE">MIT</a>. Engine: <a href="https://infographic.antv.vision">infographic.antv.vision</a>.</p>
+<p><b>AntV Infographic Markdown Preview</b> brings syntax highlighting and live Markdown preview for <a href="https://github.com/antvis/infographic">AntV Infographic</a> to <b>JetBrains IDEs</b>. It supports fenced <code>infographic</code> code blocks and standalone <code>.infographic</code> files. Requires the official <b>Markdown</b> plugin; preview uses <code>@antv/infographic</code> (SVG) through the Markdown preview and JCEF.</p>
+<p>Sample: <code>examples/sample.md</code>. License: MIT. Engine: <a href="https://infographic.antv.vision">infographic.antv.vision</a>.</p>
 <ul>
-  <li><b>Markdown</b>: recognizes fenced code blocks with language <code>infographic</code>.</li>
-  <li><b>Live preview</b>: renders SVG in the Markdown preview via <code>@antv/infographic</code>.</li>
-  <li><b>Syntax highlighting</b>: Infographic DSL in fenced blocks and <code>.infographic</code> files (aligned with <code>syntaxes/infographic.tmLanguage.json</code>).</li>
-  <li><b><code>.infographic</code> files</b>: dedicated file type; split <i>Editor</i> + <i>Preview</i> using the same preview pipeline (JCEF).</li>
-  <li><b>Local workflow</b>: no external service; write and preview inside the IDE.</li>
+  <li><b>Markdown</b>: Recognizes fenced code blocks with language <code>infographic</code>.</li>
+  <li><b>Live preview</b>: Renders SVG in the Markdown preview via <code>@antv/infographic</code>.</li>
+  <li><b>Syntax highlighting</b>: Infographic DSL in fences and <code>.infographic</code> files.</li>
+  <li><b>Standalone <code>.infographic</code> files</b>: Dedicated file type; <b>Editor</b> + <b>Preview</b> split using the same preview pipeline (JCEF).</li>
+  <li><b>Local workflow</b>: No external service—write and preview inside the IDE.</li>
 </ul>
 
 <h2>中文</h2>
-<p>AntV Infographic Markdown 预览</p>
-<p>在 JetBrains IDE 中预览 Infographic：支持 Markdown 中语言为 <code>infographic</code> 的围栏代码块，以及独立的 <code>.infographic</code> 文件；通过官方 <b>Markdown</b> 预览与 JCEF，使用 <code>@antv/infographic</code> 输出 SVG。与仓库 <a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/blob/main/README.md">README</a> 描述一致。示例见 <a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins#demo">Demo</a> 与 <code>examples/sample.md</code>。许可：<a href="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/blob/main/LICENSE">MIT</a>。上游：<a href="https://github.com/antvis/infographic">AntV Infographic</a> · <a href="https://infographic.antv.vision">infographic.antv.vision</a>。</p>
+<p><b>AntV Infographic Markdown Preview</b> 在 <b>JetBrains IDE</b> 中为 <a href="https://github.com/antvis/infographic">AntV Infographic</a> 提供语法高亮与 Markdown 实时预览，支持 <code>infographic</code> 围栏代码块与独立的 <code>.infographic</code> 源文件。需安装官方 <b>Markdown</b> 插件；通过 Markdown 预览与 JCEF 使用 <code>@antv/infographic</code> 输出 SVG。</p>
+<p>示例见 <code>examples/sample.md</code>。许可：MIT。引擎：<a href="https://infographic.antv.vision">infographic.antv.vision</a>。</p>
 <ul>
-  <li><b>Markdown 内嵌</b>：识别 <code>infographic</code> 围栏代码块。</li>
-  <li><b>实时预览</b>：在 Markdown 预览中渲染 SVG。</li>
-  <li><b>语法高亮</b>：围栏内与 <code>.infographic</code> 文件均支持 Infographic DSL 高亮。</li>
-  <li><b><code>.infographic</code> 文件</b>：注册文件类型；源码与 <b>Preview</b> 分栏预览（需 JCEF）。</li>
+  <li><b>Markdown 内嵌</b>：识别语言为 <code>infographic</code> 的围栏代码块。</li>
+  <li><b>实时预览</b>：在 Markdown 预览中通过 <code>@antv/infographic</code> 渲染 SVG。</li>
+  <li><b>语法高亮</b>：围栏内与 <code>.infographic</code> 文件中的 Infographic DSL 高亮。</li>
+  <li><b>独立 <code>.infographic</code> 文件</b>：注册专用文件类型；<b>编辑器</b> 与 <b>预览</b> 分栏，同一套预览链路（JCEF）。</li>
   <li><b>本地工作流</b>：无需外部服务，在 IDE 内编写与预览。</li>
 </ul>
   ]]></description>

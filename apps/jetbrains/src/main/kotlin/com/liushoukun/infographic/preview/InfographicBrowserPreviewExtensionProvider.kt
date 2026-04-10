@@ -16,7 +16,8 @@ private class InfographicBrowserPreviewExtension : MarkdownBrowserPreviewExtensi
 
   override val resourceProvider: ResourceProvider = object : ResourceProvider {
     override fun canProvide(resourceName: String): Boolean {
-      return resourceName == PREVIEW_SCRIPT_PATH || resourceName == PREVIEW_STYLE_PATH
+      return resourceName == PREVIEW_SCRIPT_PATH ||
+        resourceName == PREVIEW_STYLE_PATH
     }
 
     override fun loadResource(resourceName: String): ResourceProvider.Resource? {

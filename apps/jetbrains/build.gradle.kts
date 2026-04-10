@@ -5,10 +5,13 @@ plugins {
 }
 
 group = "com.liushoukun"
-version = "0.2.0"
+version = "1.0.0"
 
 /** 仓库根目录（本工程位于 apps/jetbrains） */
 val monorepoRoot: java.io.File = rootDir.parentFile.parentFile
+
+/** runIde 启动时自动打开 monorepo 下的示例目录（含 sample.md / sample.infographic） */
+val runIdeOpenDir: java.io.File = monorepoRoot.resolve("examples")
 
 repositories {
     mavenCentral()
@@ -88,5 +91,7 @@ tasks {
 
     runIde {
         jvmArgs("-Xmx2048m")
+        // RunIdeTask 继承 JavaExec，参数传给 com.intellij.idea.Main，与命令行打开工程一致
+        args(runIdeOpenDir.absolutePath)
     }
 }

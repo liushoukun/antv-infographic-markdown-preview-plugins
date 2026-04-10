@@ -72,6 +72,9 @@ let lastRendered = '';
 let lastDsl = '';
 let lastW: number | string = '100%';
 let lastH: number | string = 480;
+/** 与扩展设置 antvInfographic.visualSyncToDocument 一致；默认 false，与 Mermaid 一致仅文本驱动预览 */
+let visualSyncToDocument = false;
+let lastVisualSyncToDocument = false;
 /**
  * null = default ；
  * 'light' = @antv/infographic 内置默认（DEFAULT_OPTIONS.theme）；
@@ -393,6 +396,19 @@ const pushVisual = debounce(() => {
   }
 }, 450);
 
+/** 与 pushVisual 使用同一序列化结果，避免仅「解析/规范化」触发的误回写（与编辑器保存冲突） */
+function syncLastRenderedFromIg(): void {
+  if (!ig) {
+    return;
+  }
+  try {
+    const opts = ig.getOptions() as Record<string, unknown>;
+    lastRendered = serializeInfographicDsl(opts).trimEnd() + '\n';
+  } catch {
+    lastRendered = lastDsl;
+  }
+}
+
 function destroyIg() {
   if (ig) {
     try {
@@ -507,6 +523,7 @@ function wireThemeControls(leftBar: HTMLElement) {
     try {
       ig.render(lastDsl);
       applyEditorPreviewOverrides(ig);
+      syncLastRenderedFromIg();
       setPanMode(panEnabled);
       ensurePanzoom(false);
       updateZoomLabel();
@@ -570,6 +587,7 @@ function wirePaletteControls(leftBar: HTMLElement) {
     try {
       ig.render(lastDsl);
       applyEditorPreviewOverrides(ig);
+      syncLastRenderedFromIg();
       setPanMode(panEnabled);
       ensurePanzoom(false);
       updateZoomLabel();
@@ -1098,7 +1116,13 @@ function ensureShell(root: HTMLElement) {
   window.addEventListener('focus', applyMermaidLikeChromeColors);
 }
 
-function render(content: string, width: number | string, height: number | string, resetView: boolean) {
+function render(
+  content: string,
+  width: number | string,
+  height: number | string,
+  resetView: boolean,
+  syncVisualToHost: boolean
+) {
   if (!rootEl) {
     return;
   }
@@ -1125,7 +1149,9 @@ function render(content: string, width: number | string, height: number | string
     ...initialOptions,
   });
   ig = next;
-  next.on('options:change', () => pushVisual());
+  if (syncVisualToHost) {
+    next.on('options:change', () => pushVisual());
+  }
   next.on('error', (payload: unknown) => {
     const msg =
       payload instanceof Error
@@ -1140,7 +1166,7 @@ function render(content: string, width: number | string, height: number | string
     lastW = width;
     lastH = height;
     next.render(content);
-    lastRendered = lastDsl;
+    syncLastRenderedFromIg();
     setPanMode(false);
     ensurePanzoom(resetView);
   } catch (e) {
@@ -1154,20 +1180,53 @@ window.addEventListener('message', (event) => {
     content?: string;
     width?: number | string;
     height?: number | string;
+    visualSyncToDocument?: boolean;
   };
   if (m.type !== 'update') {
     return;
   }
+  visualSyncToDocument = m.visualSyncToDocument === true;
   const content = m.content ?? '';
   const normalized = content.trimEnd() + '\n';
   if (pendingEcho && normalized === pendingEcho) {
     pendingEcho = '';
     lastRendered = normalized;
+    lastDsl = normalized;
     return;
   }
   const w = m.width ?? '100%';
   const h = m.height ?? 480;
-  render(content, w, h, true);
+  /* 与上次已渲染的 DSL+尺寸+写回开关一致则跳过：避免扩展端重复 postMessage 触发 destroy+render（主线程卡顿） */
+  if (
+    normalized === lastDsl &&
+    w === lastW &&
+    h === lastH &&
+    visualSyncToDocument === lastVisualSyncToDocument
+  ) {
+    return;
+  }
+
+  const syncUnchanged = visualSyncToDocument === lastVisualSyncToDocument;
+  /*
+   * 仅 DSL 变化且画布尺寸/写回开关未变时走 ig.render，避免每次输入都 destroy+new Infographic（主线程与宿主窗口易抖动，单独打开文件时左侧编辑会「闪」）。
+   */
+  if (ig && syncUnchanged && w === lastW && h === lastH && normalized !== lastDsl) {
+    try {
+      clearError();
+      lastDsl = normalized;
+      ig.render(content);
+      syncLastRenderedFromIg();
+      ensurePanzoom(false);
+      lastVisualSyncToDocument = visualSyncToDocument;
+      return;
+    } catch (e) {
+      showError(e instanceof Error ? e.message : String(e));
+      destroyIg();
+    }
+  }
+
+  lastVisualSyncToDocument = visualSyncToDocument;
+  render(content, w, h, true, visualSyncToDocument);
 });
 
 host.postMessage({ type: 'ready' });

@@ -9,7 +9,7 @@ const watch = process.argv.includes('--watch');
 const ctx = await esbuild.context({
   entryPoints: [join(__dirname, 'src/preview.ts')],
   bundle: true,
-  outfile: join(__dirname, 'dist/preview.js'),
+  outdir: join(__dirname, 'dist'),
   platform: 'browser',
   target: 'es2022',
   format: 'iife',

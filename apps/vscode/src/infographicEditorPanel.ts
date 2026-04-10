@@ -2,6 +2,43 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { debounce } from './debounce';
 
+/**
+ * Webview 仅能加载 localResourceRoots 内的磁盘文件。单独打开单个 `.infographic` 时往往没有
+ * workspaceFolder，必须把文件所在目录加入 roots，否则相对路径插图无法加载、可视化编辑异常。
+ */
+function collectLocalResourceRoots(
+  context: vscode.ExtensionContext,
+  document: vscode.TextDocument
+): vscode.Uri[] {
+  const roots: vscode.Uri[] = [
+    vscode.Uri.joinPath(context.extensionUri, 'dist'),
+    vscode.Uri.joinPath(context.extensionUri, 'media'),
+  ];
+  const seen = new Set(roots.map((u) => u.toString()));
+  const pushUnique = (u: vscode.Uri) => {
+    const s = u.toString();
+    if (!seen.has(s)) {
+      seen.add(s);
+      roots.push(u);
+    }
+  };
+  const wf = vscode.workspace.getWorkspaceFolder(document.uri);
+  if (wf) {
+    pushUnique(wf.uri);
+  }
+  if (document.uri.scheme === 'file') {
+    pushUnique(vscode.Uri.file(path.dirname(document.uri.fsPath)));
+  }
+  return roots;
+}
+
+function resourceRootsSignature(roots: vscode.Uri[]): string {
+  return [...roots]
+    .map((u) => u.toString())
+    .sort()
+    .join('|');
+}
+
 function nonce(): string {
   let t = '';
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -11,33 +48,63 @@ function nonce(): string {
   return t;
 }
 
+/**
+ * 默认与 Mermaid Chart 本地预览一致：仅「文本文档 → Webview」推送（`antvInfographic.visualSyncToDocument` 默认 false）。
+ * 若用户开启可视化写回，则存在 (2) 并需缓解闭环：
+ * 1. `onDidChangeTextDocument` → 防抖 `pushUpdate` → Webview `render`
+ * 2. `options:change` → `pushVisual` → `visualEdit` → `applyEdit` → 再次触发 (1)
+ */
 export class InfographicEditorPanel {
   private static current: InfographicEditorPanel | undefined;
 
   private readonly panel: vscode.WebviewPanel;
+  private readonly resourceRootsKey: string;
   private document: vscode.TextDocument;
   private readonly disposables: vscode.Disposable[] = [];
   private disposed = false;
+  /** 跳过由本扩展 applyEdit 触发的文档变更所引起的一次 push，避免全量 render 与编辑/插图操作打架 */
+  private skipDocPushRemaining = 0;
+  /**
+   * 已向 Webview 推送过的「内容 + 画布尺寸」签名，用于去重，避免 onDidChange / 防抖叠加导致重复 postMessage → 重复全量 render（卡顿主因之一）。
+   */
+  private lastWebviewPushSignature = '';
+  /** 可视化写回合并：高频 options:change 时只保留最后一次 DSL，避免 applyEdit 排队与主线程抖动 */
+  private visualApplyQueued: string | undefined;
+  private visualApplyRunning = false;
 
   private constructor(
     panel: vscode.WebviewPanel,
     document: vscode.TextDocument,
-    private readonly context: vscode.ExtensionContext
+    private readonly context: vscode.ExtensionContext,
+    resourceRootsKey: string
   ) {
     this.panel = panel;
     this.document = document;
+    this.resourceRootsKey = resourceRootsKey;
     this.bootstrapHtml();
     this.wire();
   }
 
   static createOrShow(document: vscode.TextDocument, context: vscode.ExtensionContext): void {
+    const localRoots = collectLocalResourceRoots(context, document);
+    const rootsKey = resourceRootsSignature(localRoots);
+
     if (InfographicEditorPanel.current && !InfographicEditorPanel.current.disposed) {
-      InfographicEditorPanel.current.panel.reveal(vscode.ViewColumn.Beside);
-      if (InfographicEditorPanel.current.document.uri.toString() !== document.uri.toString()) {
-        InfographicEditorPanel.current.document = document;
-        InfographicEditorPanel.current.pushUpdate();
+      if (InfographicEditorPanel.current.resourceRootsKey !== rootsKey) {
+        InfographicEditorPanel.current.dispose();
+      } else {
+        const cur = InfographicEditorPanel.current;
+        const prevUri = cur.document.uri.toString();
+        const nextUri = document.uri.toString();
+        if (prevUri !== nextUri) {
+          /* 仅切换绑定的 .infographic 时再 reveal，避免每次切回同一编辑器都 Beside 一次导致焦点/分栏抖动、左侧输入闪烁 */
+          cur.panel.reveal(vscode.ViewColumn.Beside);
+          cur.document = document;
+          cur.clearWebviewPushDedup();
+          cur.pushUpdate();
+        }
+        return;
       }
-      return;
     }
     const panel = vscode.window.createWebviewPanel(
       'antvInfographicEditor',
@@ -46,13 +113,10 @@ export class InfographicEditorPanel {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(context.extensionUri, 'dist'),
-          vscode.Uri.joinPath(context.extensionUri, 'media'),
-        ],
+        localResourceRoots: localRoots,
       }
     );
-    InfographicEditorPanel.current = new InfographicEditorPanel(panel, document, context);
+    InfographicEditorPanel.current = new InfographicEditorPanel(panel, document, context, rootsKey);
   }
 
   private bootstrapHtml(): void {
@@ -63,8 +127,8 @@ export class InfographicEditorPanel {
     const wc = this.panel.webview.cspSource;
     const csp = [
       `default-src 'none';`,
-      /* AntV PNG 导出在内部用 Image 加载 data:/blob: SVG，须放行（否则报 Image load failed） */
-      `img-src data: blob: ${wc};`,
+      /* AntV PNG 导出在内部用 Image 加载 data:/blob: SVG；DSL 中 https 插图须放行 */
+      `img-src data: blob: https: ${wc};`,
       /* hand-drawn 主题可能通过远程样式/字体加载中文手写字形 */
       `font-src data: https: ${wc};`,
       `style-src https: ${wc} 'unsafe-inline';`,
@@ -247,8 +311,23 @@ export class InfographicEditorPanel {
 </html>`;
   }
 
+  /** 切换绑定文档或需强制同步时调用，避免沿用上一份文档的推送签名 */
+  private clearWebviewPushDedup(): void {
+    this.lastWebviewPushSignature = '';
+  }
+
+  private webviewPushSignature(
+    content: string,
+    width: string | number,
+    height: number,
+    visualSyncToDocument: boolean
+  ): string {
+    return `${this.normalizeDsl(content)}\n\u0000${String(width)}\n\u0000${height}\n\u0000${visualSyncToDocument ? '1' : '0'}`;
+  }
+
   private wire(): void {
-    const debouncedDoc = debounce(() => this.pushUpdate(), 280);
+    /* 略长于原 280ms，减少连续输入时 Webview 全量重建频率（单独打开文件时更明显） */
+    const debouncedDoc = debounce(() => this.pushUpdate(), 420);
 
     this.disposables.push(
       this.panel.webview.onDidReceiveMessage(async (msg) => {
@@ -257,7 +336,7 @@ export class InfographicEditorPanel {
           return;
         }
         if (msg?.type === 'visualEdit' && typeof msg.content === 'string') {
-          await this.applyFromWebview(msg.content as string);
+          void this.coalescedApplyFromWebview(msg.content as string);
           return;
         }
         if (msg?.type === 'exportPng' && typeof msg.pngBase64 === 'string') {
@@ -280,9 +359,15 @@ export class InfographicEditorPanel {
 
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument((e) => {
-        if (e.document.uri.toString() === this.document.uri.toString()) {
-          debouncedDoc();
+        if (e.document.uri.toString() !== this.document.uri.toString()) {
+          return;
         }
+        this.document = e.document;
+        if (this.skipDocPushRemaining > 0) {
+          this.skipDocPushRemaining -= 1;
+          return;
+        }
+        debouncedDoc();
       })
     );
 
@@ -363,15 +448,64 @@ export class InfographicEditorPanel {
     }
   }
 
-  private async applyFromWebview(text: string): Promise<void> {
+  private normalizeDsl(s: string): string {
+    return s.replace(/\r\n/g, '\n').trimEnd() + '\n';
+  }
+
+  /**
+   * 合并连续 visualEdit：避免 options:change 连发时多次 applyEdit 与 skip 计数错乱，减轻卡顿。
+   */
+  private async coalescedApplyFromWebview(text: string): Promise<void> {
+    if (!vscode.workspace.getConfiguration('antvInfographic').get<boolean>('visualSyncToDocument', false)) {
+      return;
+    }
+    if (this.visualApplyRunning) {
+      this.visualApplyQueued = text;
+      return;
+    }
+    this.visualApplyRunning = true;
+    try {
+      let next: string | undefined = text;
+      while (next !== undefined) {
+        const cur = next;
+        next = undefined;
+        await this.applyFromWebviewOnce(cur);
+        if (this.visualApplyQueued !== undefined) {
+          next = this.visualApplyQueued;
+          this.visualApplyQueued = undefined;
+        }
+      }
+    } finally {
+      this.visualApplyRunning = false;
+    }
+  }
+
+  private async applyFromWebviewOnce(text: string): Promise<void> {
     try {
       const doc = await vscode.workspace.openTextDocument(this.document.uri);
       this.document = doc;
+      if (this.normalizeDsl(text) === this.normalizeDsl(doc.getText())) {
+        return;
+      }
       const full = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
       const edit = new vscode.WorkspaceEdit();
       edit.replace(doc.uri, full, text);
-      await vscode.workspace.applyEdit(edit);
+      this.skipDocPushRemaining += 1;
+      const ok = await vscode.workspace.applyEdit(edit);
+      if (!ok) {
+        this.skipDocPushRemaining = Math.max(0, this.skipDocPushRemaining - 1);
+        void vscode.window.showErrorMessage(
+          '无法将可视化编辑写回文档（可能为只读、工作区不受信任或编辑被拒绝）。请检查工作区信任设置或改用「打开文件夹」打开工程。'
+        );
+        return;
+      }
+      const cfg = vscode.workspace.getConfiguration('antvInfographic');
+      const width = cfg.get<string | number>('editorWidth', '100%');
+      const height = cfg.get<number>('editorHeight', 480);
+      const visualSync = cfg.get<boolean>('visualSyncToDocument', false);
+      this.lastWebviewPushSignature = this.webviewPushSignature(text, width, height, visualSync);
     } catch (e) {
+      this.skipDocPushRemaining = Math.max(0, this.skipDocPushRemaining - 1);
       void vscode.window.showErrorMessage(
         `应用可视化编辑失败：${e instanceof Error ? e.message : String(e)}`
       );
@@ -385,12 +519,19 @@ export class InfographicEditorPanel {
     const cfg = vscode.workspace.getConfiguration('antvInfographic');
     const width = cfg.get<string | number>('editorWidth', '100%');
     const height = cfg.get<number>('editorHeight', 480);
+    const visualSyncToDocument = cfg.get<boolean>('visualSyncToDocument', false);
     const content = this.document.getText() || '';
+    const sig = this.webviewPushSignature(content, width, height, visualSyncToDocument);
+    if (sig === this.lastWebviewPushSignature) {
+      return;
+    }
+    this.lastWebviewPushSignature = sig;
     void this.panel.webview.postMessage({
       type: 'update',
       content,
       width,
       height,
+      visualSyncToDocument,
     });
   }
 
@@ -399,6 +540,7 @@ export class InfographicEditorPanel {
       return;
     }
     this.disposed = true;
+    this.visualApplyQueued = undefined;
     InfographicEditorPanel.current = undefined;
     while (this.disposables.length) {
       this.disposables.pop()?.dispose();

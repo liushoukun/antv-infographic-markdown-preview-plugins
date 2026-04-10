@@ -1,8 +1,8 @@
 {
   "name": "vscode-antv-infographic",
   "displayName": "AntV Infographic Markdown Preview",
-  "description": "在 Markdown 中为 AntV Infographic 提供语法高亮与预览渲染。",
-  "version": "0.8.0",
+  "description": "在 VS Code / Cursor 中为 AntV Infographic 提供语法高亮与 Markdown 实时预览，支持 infographic 围栏、.infographic 文件与侧栏可视化编辑。",
+  "version": "1.0.0",
   "publisher": "liushoukun",
   "icon": "media/images/logo.png",
   "repository": {
@@ -55,6 +55,11 @@
           "type": "number",
           "default": 480,
           "description": "侧栏可视化编辑区画布高度（像素）。"
+        },
+        "antvInfographic.visualSyncToDocument": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否将侧栏可视化编辑（拖拽等）实时写回文本文档。默认关闭，与 Mermaid Chart 本地预览一致：仅「文本 → 侧栏」单向同步；开启后画布改动会写回 .infographic（可能出现写回冲突或卡顿，按需打开）。"
         }
       }
     },

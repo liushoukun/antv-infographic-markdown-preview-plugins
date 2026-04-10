@@ -9,3 +9,4 @@ apps/vscode/media/preview.css
 .DS_Store
 package-lock.json
 .idea
+examples/.idea/
