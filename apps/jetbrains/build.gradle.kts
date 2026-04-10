@@ -47,8 +47,33 @@ val syncPreviewJs =
         duplicatesStrategy = DuplicatesStrategy.INCLUDE
     }
 
+val vscodeDistEditorWebview = monorepoRoot.resolve("apps/vscode/dist/editorWebview.js")
+
+val buildVscodeWebviewBundle =
+    tasks.register<Exec>("buildVscodeWebviewBundle") {
+        group = "build"
+        description = "在 apps/vscode 执行 esbuild，生成 editorWebview.js（需已构建 preview-web）"
+        dependsOn(syncPreviewJs)
+        workingDir = monorepoRoot.resolve("apps/vscode")
+        val isWindows = System.getProperty("os.name").lowercase().contains("windows")
+        if (isWindows) {
+            commandLine("cmd", "/c", "node esbuild.config.mjs")
+        } else {
+            commandLine("node", "esbuild.config.mjs")
+        }
+    }
+
+val syncEditorWebview =
+    tasks.register<Copy>("syncEditorWebview") {
+        group = "build"
+        description = "将 apps/vscode/dist/editorWebview.js 复制到 src/main/resources/web/"
+        dependsOn(buildVscodeWebviewBundle)
+        from(vscodeDistEditorWebview)
+        into(layout.projectDirectory.dir("src/main/resources/web"))
+    }
+
 tasks.named("processResources") {
-    dependsOn(syncPreviewJs)
+    dependsOn(syncEditorWebview)
 }
 
 tasks {

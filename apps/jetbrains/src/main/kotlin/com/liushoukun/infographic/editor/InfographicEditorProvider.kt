@@ -12,7 +12,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.liushoukun.infographic.lang.InfographicFileType
 
 /**
- * .infographic 文件：源码编辑器 + 与 VS Code 一致的预览（JCEF + preview.js）。
+ * .infographic 文件：源码编辑器 + 与 VS Code 一致的预览（JCEF + editorWebview.js）。
  */
 class InfographicEditorProvider : FileEditorProvider, DumbAware {
 
@@ -21,7 +21,7 @@ class InfographicEditorProvider : FileEditorProvider, DumbAware {
 
   override fun createEditor(project: Project, file: VirtualFile): FileEditor {
     val textEditor = TextEditorProvider.getInstance().createEditor(project, file) as TextEditor
-    val preview = InfographicPreviewEditor(file)
+    val preview = InfographicPreviewEditor(project, file)
     return TextEditorWithPreview(textEditor, preview, InfographicPreviewEditor.EDITOR_TAB_NAME)
   }
 

@@ -7,7 +7,7 @@
 **语言与文件**
 
 - **语法高亮**：Markdown 中 ` ```infographic ` 围栏内注入 `AntVInfographic` 语言；独立 `*.infographic` 文件亦使用该语言（词法规则对齐 `apps/vscode/syntaxes/infographic.tmLanguage.json`）。
-- **独立文件预览**：打开 `*.infographic` 时为「文本 + Preview」分栏（`TextEditorWithPreview`），预览页加载与 Markdown 相同的 `preview.js` / `preview.css`（需 JCEF）。示例：`examples/sample.infographic`。
+- **独立文件预览**：打开 `*.infographic` 时为「文本 + Preview」分栏（`TextEditorWithPreview`），预览与 VS Code 侧栏一致：JCEF 加载 `editorWebview.js`（缩放、主题/色板、导出 PNG/SVG 等；Gradle 从 `apps/vscode/dist` 同步）。Markdown 预览仍使用 `preview.js` / `preview.css`。示例：`examples/sample.infographic`。
 
 ## 环境要求
 
@@ -26,17 +26,19 @@
 
 ```mermaid
 flowchart LR
-  A[仓库根: pnpm install] --> B[pnpm --filter @antv-infographic/preview-web build]
-  B --> C[packages/preview-web/dist/preview.js]
-  C --> D[Gradle processResources 同步到 resources/web]
-  D --> E[buildPlugin / runIde]
-  E --> F[ZIP 或沙箱 IDE]
+  A[仓库根: pnpm install] --> B[preview-web build]
+  B --> C[preview.js / preview.css]
+  B --> D[apps/vscode esbuild]
+  D --> E[editorWebview.js]
+  C --> F[Gradle 同步 resources/web]
+  E --> F
+  F --> G[buildPlugin / runIde]
 ```
 
 ## 1. 安装依赖与共享预览脚本
 
 1. 在**仓库根目录**执行 **`pnpm install`**（仅需一次）。
-2. 构建 JetBrains 插件时，**`./gradlew buildPlugin`**（或 `processResources`）会自动执行 **`pnpm run --filter @antv-infographic/preview-web build`**，并将产物复制到 **`src/main/resources/web/preview.js`**（该文件已加入 `.gitignore`，勿手改）。
+2. 构建 JetBrains 插件时，**`./gradlew buildPlugin`**（或 `processResources`）会依次构建 **preview-web**、在 **`apps/vscode`** 执行 **`node esbuild.config.mjs`**，并将 **`preview.js` / `preview.css` / `editorWebview.js`** 复制到 **`src/main/resources/web/`**（这些生成文件已加入 `.gitignore`，勿手改）。
 
 开发时若只改预览脚本：在根目录并行运行 **`pnpm --filter @antv-infographic/preview-web run watch`** 与 **`./gradlew runIde`**（保存后重新执行一次 `processResources` 或完整 `buildPlugin` 以刷新资源，视你的工作流而定）。
 

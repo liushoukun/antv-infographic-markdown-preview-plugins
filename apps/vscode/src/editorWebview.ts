@@ -19,9 +19,48 @@ import {
   MC_TOOLBAR_ZOOM_OUT_SVG,
 } from './mcToolbarIcons';
 
-declare function acquireVsCodeApi(): { postMessage(msg: unknown): void };
+type EditorHostApi = { postMessage(msg: unknown): void };
 
-const vscode = acquireVsCodeApi();
+function createEditorHostApi(): EditorHostApi {
+  const w = globalThis as unknown as {
+    acquireVsCodeApi?: () => EditorHostApi;
+    __antvInfographicEditorHost__?: EditorHostApi;
+  };
+  if (typeof w.acquireVsCodeApi === 'function') {
+    return w.acquireVsCodeApi();
+  }
+  const jb = w.__antvInfographicEditorHost__;
+  if (jb && typeof jb.postMessage === 'function') {
+    return jb;
+  }
+  return { postMessage: () => {} };
+}
+
+const host = createEditorHostApi();
+
+/** VS Code 主题类、JetBrains 注入类、或系统 prefers-color-scheme */
+function isHostDarkChrome(): boolean {
+  if (
+    document.body.classList.contains('vscode-dark') ||
+    document.body.getAttribute('data-vscode-theme-kind') === 'vscode-dark'
+  ) {
+    return true;
+  }
+  if (document.body.classList.contains('jb-infographic-dark')) {
+    return true;
+  }
+  if (
+    document.body.classList.contains('jb-infographic-light') ||
+    document.body.classList.contains('vscode-light')
+  ) {
+    return false;
+  }
+  try {
+    return Boolean(window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+  } catch {
+    return false;
+  }
+}
 
 const rootEl = document.getElementById('root');
 const errEl = document.getElementById('err');
@@ -54,9 +93,7 @@ let paletteOutsideHandler: ((e: MouseEvent) => void) | undefined;
 /** 与 Mermaid 预览 Sidebar / LeftSideBar 一致的配色（随 VS Code 明暗切换） */
 function applyMermaidLikeChromeColors() {
   const root = document.documentElement;
-  const dark =
-    document.body.classList.contains('vscode-dark') ||
-    document.body.getAttribute('data-vscode-theme-kind') === 'vscode-dark';
+  const dark = isHostDarkChrome();
   root.style.setProperty('--ig-sidebar-bg', dark ? '#1e1e1e' : '#ffffff');
   root.style.setProperty('--ig-icon-bg', dark ? '#1e1e1e' : '#ffffff');
   root.style.setProperty('--ig-shadow', dark ? '#6b6b6b' : '#A3BDFF');
@@ -72,7 +109,7 @@ function showError(msg: string) {
     errEl.textContent = msg;
     errEl.style.display = 'block';
   }
-  vscode.postMessage({ type: 'error', message: msg });
+  host.postMessage({ type: 'error', message: msg });
 }
 
 function clearError() {
@@ -321,10 +358,7 @@ async function rasterizeSvgTextToPngBase64(
     } else {
       ctx.fillStyle =
         background ??
-        (document.body.classList.contains('vscode-dark') ||
-        document.body.getAttribute('data-vscode-theme-kind') === 'vscode-dark'
-          ? '#171719'
-          : '#ffffff');
+        (isHostDarkChrome() ? '#171719' : '#ffffff');
       ctx.fillRect(0, 0, nw, nh);
     }
     ctx.drawImage(img, 0, 0, nw, nh);
@@ -353,7 +387,7 @@ const pushVisual = debounce(() => {
       return;
     }
     pendingEcho = text;
-    vscode.postMessage({ type: 'visualEdit', content: text });
+    host.postMessage({ type: 'visualEdit', content: text });
   } catch (e) {
     showError(e instanceof Error ? e.message : String(e));
   }
@@ -562,10 +596,7 @@ function isDiagramDarkForExportModal(): boolean {
 }
 
 function syncExportModalThemeClass(modalContent: HTMLElement) {
-  const vscodeDark =
-    document.body.classList.contains('vscode-dark') ||
-    document.body.getAttribute('data-vscode-theme-kind') === 'vscode-dark';
-  const darkChrome = isDiagramDarkForExportModal() || vscodeDark;
+  const darkChrome = isDiagramDarkForExportModal() || isHostDarkChrome();
   modalContent.classList.toggle('light', !darkChrome);
   modalContent.classList.toggle('dark', darkChrome);
 }
@@ -682,11 +713,8 @@ function wireExportModal(stage: HTMLElement) {
   };
 
   const openModal = () => {
-    const vscodeDark =
-      document.body.classList.contains('vscode-dark') ||
-      document.body.getAttribute('data-vscode-theme-kind') === 'vscode-dark';
     selectedFormat = 'png';
-    selectedBg = vscodeDark ? 'dark' : 'light';
+    selectedBg = isHostDarkChrome() ? 'dark' : 'light';
     colorInput.value = '#ffffff';
     colorHex.textContent = colorInput.value.toUpperCase();
     customPicker.style.display = 'none';
@@ -793,7 +821,7 @@ function wireExportModal(stage: HTMLElement) {
             decodeSvgFromDataUrl,
             rasterizeSvgTextToPngBase64
           );
-          vscode.postMessage({ type: 'exportPng', pngBase64: b64 });
+          host.postMessage({ type: 'exportPng', pngBase64: b64 });
         } else {
           const text = await exportSvgWithInfographicFallback(
             ig,
@@ -802,10 +830,10 @@ function wireExportModal(stage: HTMLElement) {
             injectSvgBackground,
             decodeSvgFromDataUrl
           );
-          vscode.postMessage({ type: 'exportSvg', svgText: text });
+          host.postMessage({ type: 'exportSvg', svgText: text });
         }
       } catch (err) {
-        vscode.postMessage({
+        host.postMessage({
           type: 'error',
           message: `导出失败：${err instanceof Error ? err.message : String(err)}`,
         });
@@ -881,13 +909,13 @@ function wireExportModal(stage: HTMLElement) {
           msg.includes('Clipboard') ||
           msg.includes('Permission')
         ) {
-          vscode.postMessage({
+          host.postMessage({
             type: 'showWarning',
             message:
               '当前环境无法将图片复制到剪贴板，请使用「导出」保存文件。（与 Mermaid Chart 行为一致）',
           });
         } else {
-          vscode.postMessage({ type: 'error', message: `复制失败：${msg}` });
+          host.postMessage({ type: 'error', message: `复制失败：${msg}` });
         }
       }
     })();
@@ -1142,4 +1170,4 @@ window.addEventListener('message', (event) => {
   render(content, w, h, true);
 });
 
-vscode.postMessage({ type: 'ready' });
+host.postMessage({ type: 'ready' });

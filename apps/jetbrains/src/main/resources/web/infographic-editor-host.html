@@ -1,91 +1,26 @@
-import * as path from 'node:path';
-import * as vscode from 'vscode';
-import { debounce } from './debounce';
-
-function nonce(): string {
-  let t = '';
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 32; i++) {
-    t += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return t;
-}
-
-export class InfographicEditorPanel {
-  private static current: InfographicEditorPanel | undefined;
-
-  private readonly panel: vscode.WebviewPanel;
-  private document: vscode.TextDocument;
-  private readonly disposables: vscode.Disposable[] = [];
-  private disposed = false;
-
-  private constructor(
-    panel: vscode.WebviewPanel,
-    document: vscode.TextDocument,
-    private readonly context: vscode.ExtensionContext
-  ) {
-    this.panel = panel;
-    this.document = document;
-    this.bootstrapHtml();
-    this.wire();
-  }
-
-  static createOrShow(document: vscode.TextDocument, context: vscode.ExtensionContext): void {
-    if (InfographicEditorPanel.current && !InfographicEditorPanel.current.disposed) {
-      InfographicEditorPanel.current.panel.reveal(vscode.ViewColumn.Beside);
-      if (InfographicEditorPanel.current.document.uri.toString() !== document.uri.toString()) {
-        InfographicEditorPanel.current.document = document;
-        InfographicEditorPanel.current.pushUpdate();
-      }
-      return;
-    }
-    const panel = vscode.window.createWebviewPanel(
-      'antvInfographicEditor',
-      'Infographic 编辑',
-      vscode.ViewColumn.Beside,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(context.extensionUri, 'dist'),
-          vscode.Uri.joinPath(context.extensionUri, 'media'),
-        ],
-      }
-    );
-    InfographicEditorPanel.current = new InfographicEditorPanel(panel, document, context);
-  }
-
-  private bootstrapHtml(): void {
-    const n = nonce();
-    const scriptUri = this.panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'editorWebview.js')
-    );
-    const wc = this.panel.webview.cspSource;
-    const csp = [
-      `default-src 'none';`,
-      /* AntV PNG 导出在内部用 Image 加载 data:/blob: SVG，须放行（否则报 Image load failed） */
-      `img-src data: blob: ${wc};`,
-      /* hand-drawn 主题可能通过远程样式/字体加载中文手写字形 */
-      `font-src data: https: ${wc};`,
-      `style-src https: ${wc} 'unsafe-inline';`,
-      `connect-src https: ${wc};`,
-      `script-src 'nonce-${n}';`,
-    ].join(' ');
-    this.panel.webview.html = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="${csp}" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Infographic</title>
   <style>
-    body { margin: 0; padding: 8px; font-family: var(--vscode-font-family); background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-    #err { display: none; padding: 10px; margin-bottom: 8px; background: var(--vscode-inputValidation-errorBackground); border: 1px solid var(--vscode-inputValidation-errorBorder); border-radius: 4px; white-space: pre-wrap; flex-shrink: 0; }
+    /* JetBrains JCEF：无 VS Code CSS 变量时的基色 */
+    body.jb-infographic-light {
+      font-family: system-ui, "Segoe UI", sans-serif;
+      background: #f0f0f0;
+      color: #1a1a1a;
+    }
+    body.jb-infographic-dark {
+      font-family: system-ui, "Segoe UI", sans-serif;
+      background: #2b2b2b;
+      color: #bbbbbb;
+    }
+    body { margin: 0; padding: 8px; font-family: var(--vscode-font-family, system-ui, sans-serif); background: var(--vscode-editor-background, #f0f0f0); color: var(--vscode-editor-foreground, #1a1a1a); display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+    #err { display: none; padding: 10px; margin-bottom: 8px; background: var(--vscode-inputValidation-errorBackground, #ffeaea); border: 1px solid var(--vscode-inputValidation-errorBorder, #c62828); border-radius: 4px; white-space: pre-wrap; flex-shrink: 0; }
     #root { flex: 1; min-height: 0; width: 100%; position: relative; }
-    /* 图表区：仅布局容器，不设置边框/背景/内边距等渲染样式 */
     .ig-stage { position: relative; width: 100%; height: 100%; }
     .ig-viewport { position: absolute; inset: 0; overflow: hidden; }
-    /* flex：图表小于视口时在可视区内水平、垂直居中（原 inline-block 会贴左上） */
     .ig-panzoom { width: 100%; min-height: 100%; box-sizing: border-box; display: flex; justify-content: center; align-items: center; }
     .ig-host { display: block; max-width: 100%; flex-shrink: 0; }
     .ig-left-bar, .ig-right-bar {
@@ -109,14 +44,13 @@ export class InfographicEditorPanel {
     }
     .ig-theme-item {
       display: block; width: 100%; text-align: left; padding: 8px 14px; border: none; background: none;
-      font-size: 12px; font-family: var(--vscode-font-family); color: var(--vscode-foreground); cursor: pointer;
+      font-size: 12px; font-family: var(--vscode-font-family, system-ui, sans-serif); color: var(--vscode-foreground, #1a1a1a); cursor: pointer;
     }
     .ig-theme-item:hover { background: var(--ig-hover-bg); }
     .ig-theme-item-selected { background: var(--vscode-list-activeSelectionBackground, #04395e); color: var(--vscode-list-activeSelectionForeground, #fff); }
     .ig-right-bar { position: absolute; top: 8px; right: 16px; z-index: 100; display: flex; flex-direction: row; align-items: center; gap: 0; background: var(--ig-sidebar-bg, #fff); border: 1px solid var(--ig-border, #ddd); padding: 4px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
     .ig-hand-section { display: flex; align-items: center; padding-right: 4px; border-right: 1px solid var(--ig-divider); margin-right: 4px; }
     .ig-zoom-controls { display: flex; align-items: center; gap: 4px; padding-right: 4px; border-right: 1px solid var(--ig-divider); margin-right: 8px; }
-    /* 与 Mermaid Chart Sidebar.svelte：32×32 按钮内 24×24 SVG、block 避免基线裁切 */
     .ig-mc-icon {
       cursor: pointer; border: none; background: none; color: var(--ig-svg-color, #3b3b3b); border-radius: 4px;
       transition: background-color 0.2s ease; padding: 4px; width: 32px; height: 32px; box-sizing: border-box;
@@ -130,8 +64,7 @@ export class InfographicEditorPanel {
       box-shadow: none;
     }
     .ig-mc-icon.ig-mc-icon-active:hover { background-color: var(--vscode-button-hoverBackground, var(--ig-active-bg)) !important; }
-    .ig-zoom-level { font-size: 14px; font-weight: 400; padding: 0 4px; user-select: none; color: var(--ig-svg-color, #3b3b3b); font-family: var(--vscode-font-family); }
-    /* Mermaid Chart ExportModal 对齐 */
+    .ig-zoom-level { font-size: 14px; font-weight: 400; padding: 0 4px; user-select: none; color: var(--ig-svg-color, #3b3b3b); font-family: var(--vscode-font-family, system-ui, sans-serif); }
     .ig-mc-modal-root { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; align-items: center; justify-content: center; }
     .ig-mc-modal-backdrop {
       position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);
@@ -139,7 +72,7 @@ export class InfographicEditorPanel {
     }
     .ig-mc-modal-content {
       background: var(--modal-bg); border: 1px solid var(--modal-border); border-radius: 6px; width: 520px; max-width: 90vw; max-height: 85vh;
-      overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); display: flex; flex-direction: column; font-family: var(--vscode-font-family);
+      overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.4); display: flex; flex-direction: column; font-family: var(--vscode-font-family, system-ui, sans-serif);
     }
     .ig-mc-modal-content.light {
       --modal-bg: #ffffff; --modal-border: #c8c8c8; --text-primary: #3b3b3b; --text-secondary: #6e6e6e; --section-border: #d4d4d4;
@@ -231,7 +164,7 @@ export class InfographicEditorPanel {
     .ig-mc-modal-footer { padding: 0 12px 12px 12px; display: flex; justify-content: flex-end; gap: 8px; background: var(--modal-bg); flex-shrink: 0; }
     .ig-mc-button {
       padding: 8px 16px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; min-width: 70px;
-      border: 1px solid transparent; font-family: var(--vscode-font-family);
+      border: 1px solid transparent; font-family: var(--vscode-font-family, system-ui, sans-serif);
     }
     .ig-mc-button-secondary { background: var(--button-secondary-bg); border-color: var(--button-secondary-border); color: var(--text-primary); }
     .ig-mc-button-secondary:hover { background: var(--button-secondary-hover); }
@@ -239,170 +172,12 @@ export class InfographicEditorPanel {
     .ig-mc-button-primary:hover { background: var(--button-primary-hover); border-color: var(--button-primary-hover); }
   </style>
 </head>
-<body>
-  <div id="err"></div>
-  <div id="root"></div>
-  <script nonce="${n}" src="${scriptUri}"></script>
+<body class="__BODY_CLASS__">
+<div id="err"></div>
+<div id="root"></div>
+<script>
+__BRIDGE_SCRIPT__
+</script>
+<script src="editorWebview.js"></script>
 </body>
-</html>`;
-  }
-
-  private wire(): void {
-    const debouncedDoc = debounce(() => this.pushUpdate(), 280);
-
-    this.disposables.push(
-      this.panel.webview.onDidReceiveMessage(async (msg) => {
-        if (msg?.type === 'ready') {
-          this.pushUpdate();
-          return;
-        }
-        if (msg?.type === 'visualEdit' && typeof msg.content === 'string') {
-          await this.applyFromWebview(msg.content as string);
-          return;
-        }
-        if (msg?.type === 'exportPng' && typeof msg.pngBase64 === 'string') {
-          await this.savePng(msg.pngBase64 as string);
-          return;
-        }
-        if (msg?.type === 'exportSvg' && typeof msg.svgText === 'string') {
-          await this.saveSvgText(msg.svgText as string);
-          return;
-        }
-        if (msg?.type === 'error' && typeof msg.message === 'string') {
-          void vscode.window.showErrorMessage(`Infographic：${msg.message as string}`);
-          return;
-        }
-        if (msg?.type === 'showWarning' && typeof msg.message === 'string') {
-          void vscode.window.showWarningMessage(`Infographic：${msg.message as string}`);
-        }
-      })
-    );
-
-    this.disposables.push(
-      vscode.workspace.onDidChangeTextDocument((e) => {
-        if (e.document.uri.toString() === this.document.uri.toString()) {
-          debouncedDoc();
-        }
-      })
-    );
-
-    this.disposables.push(
-      vscode.window.onDidChangeActiveTextEditor((ed) => {
-        if (ed?.document.languageId === 'infographic') {
-          if (ed.document.uri.toString() !== this.document.uri.toString()) {
-            this.document = ed.document;
-            debouncedDoc();
-          }
-        }
-      })
-    );
-
-    this.disposables.push(
-      vscode.workspace.onDidChangeConfiguration((e) => {
-        if (!e.affectsConfiguration('antvInfographic')) {
-          return;
-        }
-        this.pushUpdate();
-      })
-    );
-
-    this.disposables.push(this.panel.onDidDispose(() => this.dispose()));
-  }
-
-  private exportStem(): string {
-    const fn = this.document.fileName;
-    const stem = path.basename(fn, path.extname(fn));
-    return stem.length > 0 ? stem : 'infographic';
-  }
-
-  private defaultExportUri(ext: 'png' | 'svg'): vscode.Uri {
-    const stem = this.exportStem();
-    const name = `${stem}.${ext}`;
-    if (this.document.uri.scheme === 'file') {
-      return vscode.Uri.file(path.join(path.dirname(this.document.uri.fsPath), name));
-    }
-    return vscode.Uri.file(name);
-  }
-
-  private async savePng(pngBase64: string): Promise<void> {
-    try {
-      const uri = await vscode.window.showSaveDialog({
-        defaultUri: this.defaultExportUri('png'),
-        filters: { PNG: ['png'] },
-        saveLabel: '保存',
-      });
-      if (!uri) {
-        return;
-      }
-      const buf = Buffer.from(pngBase64, 'base64');
-      await vscode.workspace.fs.writeFile(uri, buf);
-      void vscode.window.showInformationMessage('PNG 已保存。');
-    } catch (e) {
-      void vscode.window.showErrorMessage(
-        `保存 PNG 失败：${e instanceof Error ? e.message : String(e)}`
-      );
-    }
-  }
-
-  private async saveSvgText(svgText: string): Promise<void> {
-    try {
-      const uri = await vscode.window.showSaveDialog({
-        defaultUri: this.defaultExportUri('svg'),
-        filters: { SVG: ['svg'] },
-        saveLabel: '保存',
-      });
-      if (!uri) {
-        return;
-      }
-      await vscode.workspace.fs.writeFile(uri, Buffer.from(svgText, 'utf8'));
-      void vscode.window.showInformationMessage('SVG 已保存。');
-    } catch (e) {
-      void vscode.window.showErrorMessage(
-        `保存 SVG 失败：${e instanceof Error ? e.message : String(e)}`
-      );
-    }
-  }
-
-  private async applyFromWebview(text: string): Promise<void> {
-    try {
-      const doc = await vscode.workspace.openTextDocument(this.document.uri);
-      this.document = doc;
-      const full = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
-      const edit = new vscode.WorkspaceEdit();
-      edit.replace(doc.uri, full, text);
-      await vscode.workspace.applyEdit(edit);
-    } catch (e) {
-      void vscode.window.showErrorMessage(
-        `应用可视化编辑失败：${e instanceof Error ? e.message : String(e)}`
-      );
-    }
-  }
-
-  private pushUpdate(): void {
-    if (this.disposed) {
-      return;
-    }
-    const cfg = vscode.workspace.getConfiguration('antvInfographic');
-    const width = cfg.get<string | number>('editorWidth', '100%');
-    const height = cfg.get<number>('editorHeight', 480);
-    const content = this.document.getText() || '';
-    void this.panel.webview.postMessage({
-      type: 'update',
-      content,
-      width,
-      height,
-    });
-  }
-
-  dispose(): void {
-    if (this.disposed) {
-      return;
-    }
-    this.disposed = true;
-    InfographicEditorPanel.current = undefined;
-    while (this.disposables.length) {
-      this.disposables.pop()?.dispose();
-    }
-    this.panel.dispose();
-  }
-}
+</html>
