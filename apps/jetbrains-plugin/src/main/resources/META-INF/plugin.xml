@@ -1,15 +1,69 @@
 <idea-plugin>
   <id>com.liushoukun.jetbrains.antv-infographic</id>
   <name>AntV Infographic Markdown Preview</name>
-  <vendor email="liushoukun@example.com">liushoukun</vendor>
+  <vendor url="https://github.com/liushoukun/vscode-antv-infographic">liushoukun</vendor>
   <description><![CDATA[
-    Render infographic fenced blocks in JetBrains Markdown preview.
+AntV Infographic Markdown Preview for JetBrains IDEs renders Infographic DSL in Markdown fenced code blocks and standalone .infographic files using @antv/infographic (SVG preview via the bundled Markdown preview and JCEF editor).
+
+<p><b>AntV Infographic Markdown Preview</b> — 与仓库根目录 <a href="https://github.com/liushoukun/vscode-antv-infographic/blob/main/README.md">README.md</a> 描述同一产品方向：
+面向 Markdown 工作流的 Infographic 预览。你可以在 Markdown 中直接编写 <code>infographic</code> 代码块，并在 <b>Markdown 预览</b> 中即时看到渲染结果（本插件运行于 JetBrains IDE，依赖官方 Markdown 插件）。</p>
+
+<p><b>Features</b>（与 README「Features」对应）</p>
+<ul>
+  <li><b>Markdown 内嵌支持</b>：识别 <code> ```infographic </code> 围栏代码块。</li>
+  <li><b>实时预览渲染</b>：在 Markdown 预览中调用 <code>@antv/infographic</code> 渲染 SVG。</li>
+  <li><b>语法高亮</b>：Markdown 中 <code> ```infographic </code> 围栏内与独立 <code>.infographic</code> 文件均提供 Infographic DSL 高亮（对齐仓库 <code>syntaxes/infographic.tmLanguage.json</code> 规则）。</li>
+  <li><b>.infographic 文件</b>：注册文件类型；打开后为「源码 + Preview」分栏，使用与 Markdown 预览相同的 <code>preview.js</code> 渲染（需 JCEF）。</li>
+  <li><b>本地工作流友好</b>：无需外部服务，直接在 IDE 中编写和预览。</li>
+</ul>
+
+<p><b>Demo</b>：界面示意见仓库 README 中 Demo（<a href="https://github.com/liushoukun/vscode-antv-infographic#demo">#demo</a>）。</p>
+
+<p><b>Usage</b>（与 README「Usage」一致）</p>
+<p>在 Markdown 中加入如下代码块：</p>
+<pre><code>```infographic
+infographic list-row-simple-horizontal-arrow
+data
+  lists
+    - label Step 1
+      desc Start
+    - label Step 2
+      desc In Progress
+```</code></pre>
+<p>然后打开 Markdown 预览即可查看渲染结果。可直接使用示例文件：<code>examples/sample.md</code>（克隆完整仓库后）。独立 <code>*.infographic</code> 文件在编辑器中切换到 <b>Preview</b> 标签即可预览。</p>
+
+<p><b>Requirements</b></p>
+<ul>
+  <li>README 中 VS Code 扩展要求：<code>VS Code >= 1.85.0</code>（供对照）。</li>
+  <li>本插件：基于 IntelliJ 平台、已启用 <b>Markdown</b> 插件；构建基线见 <code>since-build</code>（与工程 <code>gradle.properties</code> / <code>patchPluginXml</code> 一致）。</li>
+</ul>
+
+<p><b>Documentation</b>（与 README「Documentation」一致）</p>
+<ul>
+  <li>设计与实现细节：<code>DESIGN.md</code></li>
+  <li>变更记录：<code>CHANGELOG.md</code></li>
+</ul>
+
+<p><b>License</b>：<a href="https://github.com/liushoukun/vscode-antv-infographic/blob/main/LICENSE">MIT</a>（与仓库 README 一致）。</p>
+
+<p>上游引擎：<a href="https://github.com/antvis/infographic">AntV Infographic</a> · <a href="https://infographic.antv.vision">infographic.antv.vision</a></p>
   ]]></description>
 
+  <!-- 必须声明平台模块，否则会被视为「仅依赖其它插件的旧式插件」，只在 IntelliJ IDEA 中加载，PhpStorm/WebStorm 等会提示不兼容 -->
+  <depends>com.intellij.modules.platform</depends>
   <depends>org.intellij.plugins.markdown</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="AntV Infographic" implementationClass="com.liushoukun.infographic.lang.InfographicFileType" fieldName="INSTANCE" language="AntVInfographic" extensions="infographic"/>
+    <lang.parserDefinition language="AntVInfographic" implementationClass="com.liushoukun.infographic.lang.InfographicParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="AntVInfographic" implementationClass="com.liushoukun.infographic.lang.InfographicSyntaxHighlighterFactory"/>
+    <lang.commenter language="AntVInfographic" implementationClass="com.liushoukun.infographic.lang.InfographicCommenter"/>
+    <fileEditorProvider implementation="com.liushoukun.infographic.editor.InfographicEditorProvider"/>
+  </extensions>
 
   <extensions defaultExtensionNs="org.intellij.markdown">
     <browserPreviewExtensionProvider
       implementation="com.liushoukun.infographic.preview.InfographicBrowserPreviewExtensionProvider"/>
+    <fenceLanguageProvider implementation="com.liushoukun.infographic.lang.InfographicCodeFenceLanguageProvider"/>
   </extensions>
 </idea-plugin>

@@ -19,7 +19,7 @@ intellij {
 
 tasks {
   patchPluginXml {
-    sinceBuild.set("243")
+    sinceBuild.set("241")
     untilBuild.set("")
   }
 
@@ -29,5 +29,10 @@ tasks {
 
   runIde {
     jvmArgs("-Xmx2048m")
+  }
+
+  // 避免访问 GitHub 解析「最新 Gradle IntelliJ Plugin 版本」时因代理/证书导致 NPE（getHeaderField("Location")）
+  named<org.jetbrains.intellij.tasks.InitializeIntelliJPluginTask>("initializeIntelliJPlugin") {
+    enabled = false
   }
 }
