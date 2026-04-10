@@ -1145,8 +1145,9 @@ function render(
     container: canvas,
     width,
     height,
-    editable: true,
     ...initialOptions,
+    /** 未开启「可视化同步到文档」时不应出现选区/浮动工具条等编辑 UI（写回被宿主拒绝无意义） */
+    editable: syncVisualToHost,
   });
   ig = next;
   if (syncVisualToHost) {
