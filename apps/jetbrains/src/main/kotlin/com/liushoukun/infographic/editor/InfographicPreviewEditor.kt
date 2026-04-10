@@ -21,12 +21,13 @@ import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowser
+import com.intellij.ui.jcef.JBCefBrowserBase
 import com.intellij.ui.jcef.JBCefJSQuery
 import com.intellij.util.Alarm
-import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
 import java.nio.charset.StandardCharsets
@@ -49,7 +50,8 @@ class InfographicPreviewEditor(
   private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
   private var previewDir: Path? = null
   private val browser: JBCefBrowser? = if (JBCefApp.isSupported()) JBCefBrowser() else null
-  private val jsQuery: JBCefJSQuery? = browser?.let { JBCefJSQuery.create(it) }
+  private val jsQuery: JBCefJSQuery? =
+    browser?.let { JBCefJSQuery.create(it as JBCefBrowserBase) }
   private val gson = Gson()
   @Volatile
   private var webReady = false
@@ -151,7 +153,8 @@ class InfographicPreviewEditor(
       javaClass.getResourceAsStream("/web/infographic-editor-host.html")?.use {
         it.reader(StandardCharsets.UTF_8).readText()
       } ?: error("missing /web/infographic-editor-host.html")
-    val bodyClass = if (UIUtil.isUnderDarcula()) "jb-infographic-dark" else "jb-infographic-light"
+    val bodyClass =
+      if (JBColor.isBright()) "jb-infographic-light" else "jb-infographic-dark"
     val bridge =
       """
       window.__antvInfographicEditorHost__ = {
@@ -218,9 +221,24 @@ class InfographicPreviewEditor(
     return stem.ifEmpty { "infographic" }
   }
 
+  /** 兼容 2024.x 与 2025.2+ 的保存对话框描述符 API（后者弃用了旧构造器）。 */
+  private fun createFileSaverDescriptor(title: String, description: String, extension: String): FileSaverDescriptor {
+    val clazz = FileSaverDescriptor::class.java
+    val twoArgCtor = runCatching { clazz.getConstructor(String::class.java, String::class.java) }.getOrNull()
+    if (twoArgCtor == null) {
+      @Suppress("UNCHECKED_CAST")
+      return clazz.getConstructor(String::class.java, String::class.java, Array<String>::class.java)
+        .newInstance(title, description, arrayOf(extension)) as FileSaverDescriptor
+    }
+    @Suppress("UNCHECKED_CAST")
+    val d = twoArgCtor.newInstance(title, description) as FileSaverDescriptor
+    d.javaClass.getMethod("withExtensionFilter", String::class.java).invoke(d, extension)
+    return d
+  }
+
   private fun savePng(pngBase64: String) {
     val stem = exportStem()
-    val descriptor = FileSaverDescriptor("导出 PNG", "选择保存位置", "png")
+    val descriptor = createFileSaverDescriptor("导出 PNG", "选择保存位置", "png")
     val dialog = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project)
     val base = file.parent
     val target = dialog.save(base, "$stem.png") ?: return
@@ -235,7 +253,7 @@ class InfographicPreviewEditor(
 
   private fun saveSvg(svgText: String) {
     val stem = exportStem()
-    val descriptor = FileSaverDescriptor("导出 SVG", "选择保存位置", "svg")
+    val descriptor = createFileSaverDescriptor("导出 SVG", "选择保存位置", "svg")
     val dialog = FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project)
     val base = file.parent
     val target = dialog.save(base, "$stem.svg") ?: return
