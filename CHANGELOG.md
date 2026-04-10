@@ -1,5 +1,11 @@
 # 变更日志
 
+## 0.7.1
+
+- 修复侧边栏「导出为图片」时 PNG/SVG 与画布预览**字体不一致**：`data:` 栅格化脱离文档后无法继承 VS Code 与主题 Web 字体
+- 导出前内联 `text`/`tspan` 与 `foreignObject span` 的计算字体与颜色；等待 `document.fonts.ready` 后再序列化
+- 序列化前调用与 `@antv/infographic` 一致的 `embedFonts`，将主题 woff2 内联为 SVG 内 `@font-face`；并补充隐藏探测节点以覆盖仅写在 `<text>` 上的字族，避免库原收集逻辑遗漏
+
 ## 0.7.0
 
 - 为 `.infographic` 文件在资源管理器中注册语言图标（`logo.svg`，与 Mermaid Chart 对 `.mmd` 的处理方式一致）

@@ -5,11 +5,12 @@ import { serializeInfographicDsl } from './serializeInfographicDsl';
 import {
   exportPngWithInfographicFallback,
   exportSvgWithInfographicFallback,
-  getBase64SVG,
+  getBase64SVGAsync,
   getDiagramSvg,
   getExportBackgroundColorMc,
   getPreviewBackgroundColorMc,
   uniquifyCloneIds,
+  waitForFontsReady,
 } from './webviewExportMc';
 import {
   MC_TOOLBAR_FIT_SVG,
@@ -820,6 +821,7 @@ function wireExportModal(stage: HTMLElement) {
           if (!svg) {
             return;
           }
+          await waitForFontsReady();
           const exportBg = getExportBackgroundColorMc(selectedBg, colorInput.value);
           const rect = svg.getBoundingClientRect();
           const w = Math.max(Math.round(rect.width), 1);
@@ -828,7 +830,7 @@ function wireExportModal(stage: HTMLElement) {
           const width = w * scale;
           const height = h * scale;
           const bgForCopy = selectedBg === 'transparent' ? 'transparent' : exportBg;
-          const base64 = getBase64SVG(svg, width, height);
+          const base64 = await getBase64SVGAsync(svg, width, height);
           const dataUrl = `data:image/svg+xml;base64,${base64}`;
           const img = new Image();
           await new Promise<void>((resolve, reject) => {
