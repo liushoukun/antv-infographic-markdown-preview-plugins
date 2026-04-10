@@ -34,20 +34,6 @@ data
 
 将 DSL 保存为扩展名为 `.infographic` 的文件。在资源管理器中会有 AntV 图标；在编辑器中打开后，扩展会自动在侧栏打开 **Infographic 编辑** Webview。若只需文本编辑，可关闭侧栏面板。
 
-更多示例见 GitHub 仓库中的 [`examples`](https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/tree/main/examples) 目录（如 `sample.md`、`sample.infographic`）。
-
-## 设置
-
-可在设置中搜索 **AntV Infographic**，调整侧栏编辑区画布宽度、高度等（对应 `antvInfographic.editorWidth`、`antvInfographic.editorHeight`）。
-
-## 命令
-
-- **编辑 Infographic 代码块**：在 Markdown 中聚焦 `infographic` 围栏时，可通过命令面板执行（见扩展贡献的命令列表）。
-
 ## 许可证
 
-[MIT](LICENSE)
 
-## 源码与协作
-
-本扩展发布包来自 monorepo 中的 `apps/vscode`；克隆 [antv-infographic-markdown-preview-plugins](https://github.com/liushoukun/antv-infographic-markdown-preview-plugins) 后，在仓库根目录执行 `pnpm install` 与 `pnpm run build` 即可本地调试（详见仓库根目录 README）。
