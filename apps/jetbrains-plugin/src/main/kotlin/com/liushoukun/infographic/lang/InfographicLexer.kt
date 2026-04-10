@@ -4,7 +4,10 @@ import com.intellij.lexer.LexerBase
 import com.intellij.psi.tree.IElementType
 
 /**
- * 轻量词法分析，语义对齐仓库根目录 syntaxes/infographic.tmLanguage.json。
+ * 词法分析：对齐 [docs/infographic-syntax-spec.md] 与官方语法
+ * https://infographic.antv.vision/learn/infographic-syntax#
+ *
+ * 行模型：可选缩进 → 可选 `- ` → 键（`infographic` 或 `[\w.-]+`）→ 可选「值」（取至行尾），避免将 `/`、数字等标为 BAD_CHARACTER。
  */
 class InfographicLexer : LexerBase() {
 
@@ -16,6 +19,8 @@ class InfographicLexer : LexerBase() {
   private var tokenType: IElementType? = null
   /** 0 普通；1 双引号串；2 单引号串 */
   private var stringQuote = 0
+  /** 刚读完键（或 `theme`），下一非空白段为行尾值 */
+  private var pendingValue = false
 
   override fun start(buffer: CharSequence, startOffset: Int, endOffset: Int, initialState: Int) {
     this.buffer = buffer
@@ -23,10 +28,11 @@ class InfographicLexer : LexerBase() {
     bufferEnd = endOffset
     tokenEnd = startOffset
     stringQuote = initialState and 0xFF
+    pendingValue = (initialState and PENDING_VALUE_MASK) != 0
     advance()
   }
 
-  override fun getState(): Int = stringQuote
+  override fun getState(): Int = stringQuote or if (pendingValue) PENDING_VALUE_MASK else 0
 
   override fun getTokenType(): IElementType? = tokenType
 
@@ -44,6 +50,28 @@ class InfographicLexer : LexerBase() {
       tokenType = null
       return
     }
+
+    if (pendingValue) {
+      val c = buffer[tokenEnd]
+      when {
+        c == ' ' || c == '\t' -> {
+          tokenType = InfographicTokenTypes.WHITE_SPACE
+          while (tokenEnd < bufferEnd) {
+            val ch = buffer[tokenEnd]
+            if (ch != ' ' && ch != '\t') break
+            tokenEnd++
+          }
+          return
+        }
+        c == '\r' || c == '\n' -> pendingValue = false
+        else -> {
+          scanValueToEol()
+          pendingValue = false
+          return
+        }
+      }
+    }
+
     when (stringQuote) {
       1 -> {
         tokenType = scanDoubleQuotedString()
@@ -84,8 +112,68 @@ class InfographicLexer : LexerBase() {
         tokenEnd++
         if (tokenEnd < bufferEnd && buffer[tokenEnd] == ' ') tokenEnd++
       }
+      isLineKeyPosition(tokenStart) -> {
+        if (!consumeInfographicKeywordIfAny()) {
+          scanLineStartKey()
+        }
+      }
       else -> scanWordOrSymbol()
     }
+  }
+
+  /** 行首 `infographic` 关键字（整词），模板 slug 由后续 `scanWordOrSymbol` 处理。 */
+  private fun consumeInfographicKeywordIfAny(): Boolean {
+    if (!regionMatchesIgnoreCase(tokenEnd, INFOGRAPHIC_LEN, INFOGRAPHIC)) return false
+    val after = tokenEnd + INFOGRAPHIC_LEN
+    if (after < bufferEnd && isIdContinue(buffer[after])) return false
+    tokenStart = tokenEnd
+    tokenEnd = after
+    tokenType = InfographicTokenTypes.KEYWORD
+    return true
+  }
+
+  private fun scanLineStartKey() {
+    tokenStart = tokenEnd
+    val c0 = buffer[tokenStart]
+    if (!c0.isLetter() && c0 != '_') {
+      tokenEnd++
+      tokenType = InfographicTokenTypes.BAD_CHARACTER
+      return
+    }
+    while (tokenEnd < bufferEnd) {
+      val ch = buffer[tokenEnd]
+      if (isIdContinue(ch) || ch == '.' || ch == '-') tokenEnd++
+      else break
+    }
+    val raw = buffer.subSequence(tokenStart, tokenEnd).toString()
+    val wl = raw.lowercase()
+    val keyType = classifyLineStartKey(raw, wl)
+    tokenType = keyType
+    pendingValue = shouldOpenValueAfterKey(keyType, wl)
+  }
+
+  private fun classifyLineStartKey(raw: String, wl: String): IElementType {
+    if (raw.contains('.')) return InfographicTokenTypes.PROPERTY
+    if (wl in BLOCK_KEYWORDS) return InfographicTokenTypes.KEYWORD
+    if (wl in PROPERTY_NAMES) return InfographicTokenTypes.PROPERTY
+    return InfographicTokenTypes.IDENTIFIER
+  }
+
+  private fun shouldOpenValueAfterKey(type: IElementType, wl: String): Boolean {
+    if (type == InfographicTokenTypes.PROPERTY) return true
+    if (type == InfographicTokenTypes.IDENTIFIER) return true
+    if (type == InfographicTokenTypes.KEYWORD && wl == "theme") return true
+    return false
+  }
+
+  private fun scanValueToEol() {
+    tokenStart = tokenEnd
+    while (tokenEnd < bufferEnd) {
+      val ch = buffer[tokenEnd]
+      if (ch == '\n' || ch == '\r') break
+      tokenEnd++
+    }
+    tokenType = InfographicTokenTypes.VALUE
   }
 
   private fun isLineStartBullet(offset: Int): Boolean {
@@ -95,6 +183,30 @@ class InfographicLexer : LexerBase() {
       if (ch == '\n') return true
       if (ch != ' ' && ch != '\t') return false
       i--
+    }
+    return true
+  }
+
+  /**
+   * 当前 offset 是否处于「行内键」位置：从行首到 offset 仅空白，且至多一组 `- ` 列表符。
+   */
+  private fun isLineKeyPosition(offset: Int): Boolean {
+    var lineStart = offset - 1
+    while (lineStart >= bufferStart && buffer[lineStart] != '\n') lineStart--
+    lineStart++
+    var i = lineStart
+    var seenBullet = false
+    while (i < offset) {
+      when (val ch = buffer[i]) {
+        ' ', '\t' -> i++
+        '-' -> {
+          if (seenBullet) return false
+          seenBullet = true
+          i++
+          while (i < offset && (buffer[i] == ' ' || buffer[i] == '\t')) i++
+        }
+        else -> return false
+      }
     }
     return true
   }
@@ -135,7 +247,7 @@ class InfographicLexer : LexerBase() {
     return InfographicTokenTypes.STRING
   }
 
-  private fun Char.isIdBody(): Boolean = isLetterOrDigit() || this == '-' || this == '_'
+  private fun isIdContinue(ch: Char): Boolean = ch.isLetterOrDigit() || ch == '_' || ch == '-'
 
   private fun scanWordOrSymbol() {
     val start = tokenEnd
@@ -145,35 +257,15 @@ class InfographicLexer : LexerBase() {
       tokenType = InfographicTokenTypes.BAD_CHARACTER
       return
     }
-    while (tokenEnd < bufferEnd && buffer[tokenEnd].isIdBody()) tokenEnd++
+    while (tokenEnd < bufferEnd && isIdContinue(buffer[tokenEnd])) tokenEnd++
     val word = buffer.subSequence(start, tokenEnd).toString()
-    val atLineKeyword = isAtLineStartAfterIndent(start)
-    tokenType = classifyWord(word.lowercase(), atLineKeyword, start)
-  }
-
-  private fun isAtLineStartAfterIndent(offset: Int): Boolean {
-    var i = offset - 1
-    while (i >= bufferStart) {
-      val ch = buffer[i]
-      if (ch == '\n') return true
-      if (ch != ' ' && ch != '\t') return false
-      i--
+    val wl = word.lowercase()
+    tokenType = when {
+      wl.contains('-') && isAfterInfographicKeyword(start) -> InfographicTokenTypes.TYPE_REF
+      else -> InfographicTokenTypes.IDENTIFIER
     }
-    return true
   }
 
-  private fun classifyWord(w: String, atLineKeyword: Boolean, startOffset: Int): IElementType {
-    if (atLineKeyword) {
-      if (w == "infographic" || w in CONTROL_KEYWORDS) return InfographicTokenTypes.KEYWORD
-      if (w in PROPERTY_NAMES) return InfographicTokenTypes.PROPERTY
-      if (w.contains('-') && isAfterInfographicKeyword(startOffset)) {
-        return InfographicTokenTypes.TYPE_REF
-      }
-    }
-    return InfographicTokenTypes.IDENTIFIER
-  }
-
-  /** 当前词紧接在同一行「infographic」关键字与空白之后（用于模板类型 slug，如 list-row-simple）。 */
   private fun isAfterInfographicKeyword(wordStart: Int): Boolean {
     var lineStart = wordStart - 1
     while (lineStart >= bufferStart && buffer[lineStart] != '\n') lineStart--
@@ -182,8 +274,39 @@ class InfographicLexer : LexerBase() {
     return raw.matches(Regex("^\\s*infographic\\s+$", RegexOption.IGNORE_CASE))
   }
 
+  private fun regionMatchesIgnoreCase(offset: Int, length: Int, s: String): Boolean {
+    if (offset + length > bufferEnd) return false
+    for (i in 0 until length) {
+      if (!buffer[offset + i].equals(s[i], ignoreCase = true)) return false
+    }
+    return true
+  }
+
   companion object {
-    private val CONTROL_KEYWORDS = setOf("data", "theme", "template", "design")
-    private val PROPERTY_NAMES = setOf("label", "desc", "title", "value", "name", "type")
+    private const val PENDING_VALUE_MASK = 0x200
+    private const val INFOGRAPHIC = "infographic"
+    private const val INFOGRAPHIC_LEN = 11
+
+    private val BLOCK_KEYWORDS = setOf("data", "theme", "template", "design")
+
+    /**
+     * 官方语法中出现的键名（块内字段 / 数据项 / 边属性 / 常用 design·theme 配置）。
+     * 未知键仍按 IDENTIFIER + 行尾值处理，不标红。
+     */
+    private val PROPERTY_NAMES = buildSet {
+      addAll(
+        listOf(
+          "label", "desc", "title", "value", "name", "type", "icon", "id",
+          "lists", "sequences", "values", "nodes", "relations", "compares",
+          "root", "children", "items", "order",
+          "category", "group",
+          "from", "to", "direction", "showarrow", "arrowtype",
+          "structure", "item",
+          "gap", "showicon", "align", "showtitle", "padding", "margin", "fontsize", "fontweight",
+          "colorbg", "colorprimary", "palette", "stylize", "roughness",
+          "fill", "stroke", "base", "shape", "text", "color", "fontfamily",
+        ),
+      )
+    }
   }
 }

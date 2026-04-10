@@ -29,6 +29,7 @@ class InfographicSyntaxHighlighter : SyntaxHighlighterBase() {
       InfographicTokenTypes.TYPE_REF to arrayOf(DefaultLanguageHighlighterColors.CLASS_NAME),
       InfographicTokenTypes.LIST_MARK to arrayOf(DefaultLanguageHighlighterColors.BRACES),
       InfographicTokenTypes.IDENTIFIER to arrayOf(DefaultLanguageHighlighterColors.IDENTIFIER),
+      InfographicTokenTypes.VALUE to arrayOf(DefaultLanguageHighlighterColors.STRING),
       InfographicTokenTypes.BAD_CHARACTER to arrayOf(HighlighterColors.BAD_CHARACTER),
     )
   }

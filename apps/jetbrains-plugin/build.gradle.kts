@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.liushoukun"
-version = "0.1.0"
+version = "0.2.0"
 
 repositories {
   mavenCentral()
@@ -29,10 +29,5 @@ tasks {
 
   runIde {
     jvmArgs("-Xmx2048m")
-  }
-
-  // 避免访问 GitHub 解析「最新 Gradle IntelliJ Plugin 版本」时因代理/证书导致 NPE（getHeaderField("Location")）
-  named<org.jetbrains.intellij.tasks.InitializeIntelliJPluginTask>("initializeIntelliJPlugin") {
-    enabled = false
   }
 }

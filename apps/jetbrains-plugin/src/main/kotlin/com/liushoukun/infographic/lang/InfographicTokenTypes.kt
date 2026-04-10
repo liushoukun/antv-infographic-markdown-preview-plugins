@@ -27,6 +27,10 @@ object InfographicTokenTypes {
   @JvmField
   val IDENTIFIER: IElementType = IElementType("INF_IDENTIFIER", InfographicLanguage)
 
+  /** 键后的行尾值域：可含中文、数字、`/`、`#`、关系箭头等，避免误标为非法字符 */
+  @JvmField
+  val VALUE: IElementType = IElementType("INF_VALUE", InfographicLanguage)
+
   @JvmField
   val BAD_CHARACTER: IElementType = IElementType("INF_BAD_CHARACTER", InfographicLanguage)
 }
