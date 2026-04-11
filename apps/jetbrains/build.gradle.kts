@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.liushoukun"
-version = "1.0.2"
+version = "1.0.3"
 
 /** 仓库根目录（本工程位于 apps/jetbrains） */
 val monorepoRoot: java.io.File = rootDir.parentFile.parentFile

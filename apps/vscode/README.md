@@ -28,13 +28,13 @@
 
 ## Preview
 
-> Markdown
+### Markdown
 
 ![Markdown](https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/raw/HEAD/apps/vscode/media/demo/v-1.png)
-1
-> .infographi
 
-![.infographic](https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/raw/HEAD/apps/vscode/media/demo/v-2.png)
+### Standalone `.infographic` files
+
+![Standalone .infographic](https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/raw/HEAD/apps/vscode/media/demo/v-2.png)
 
 ## Usage
 

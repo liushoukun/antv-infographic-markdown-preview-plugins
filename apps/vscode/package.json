@@ -2,7 +2,7 @@
   "name": "vscode-antv-infographic",
   "displayName": "AntV Infographic Markdown Preview",
   "description": "在 VS Code / Cursor 中为 AntV Infographic 提供语法高亮与 Markdown 实时预览，支持 infographic 围栏、.infographic 文件与侧栏可视化编辑。",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "liushoukun",
   "icon": "media/images/logo.png",
   "repository": {

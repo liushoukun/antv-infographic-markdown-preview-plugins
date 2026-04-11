@@ -2,6 +2,11 @@
 
 本文件随 VSIX 一并发布；完整 monorepo 说明见 GitHub 仓库根目录 README。
 
+## 1.0.3
+
+- 优化市场 README 中 Preview 小节标题样式（使用三级标题）。
+- 与 JetBrains 插件版本对齐为 1.0.3。
+
 ## 1.0.2
 
 - 修复 Open VSX / 市场页 README 中预览图链接（monorepo 下使用 GitHub 绝对路径）。
