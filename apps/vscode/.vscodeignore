@@ -11,3 +11,5 @@ node_modules/**
 
 # 其它
 pnpm-lock.yaml
+
+media/demo/*

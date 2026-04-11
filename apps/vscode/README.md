@@ -28,7 +28,13 @@
 
 ## Preview
 
-![Demo](./media/demo/demo-1.png)
+> Markdown
+
+![Markdown](https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/raw/HEAD/apps/vscode/media/demo/v-1.png)
+1
+> .infographi
+
+![.infographic](https://github.com/liushoukun/antv-infographic-markdown-preview-plugins/raw/HEAD/apps/vscode/media/demo/v-2.png)
 
 ## Usage
 

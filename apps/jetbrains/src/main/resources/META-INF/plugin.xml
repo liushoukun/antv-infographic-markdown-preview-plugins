@@ -3,8 +3,8 @@
   <name>AntV Infographic Markdown Preview</name>
   <vendor url="https://github.com/liushoukun/antv-infographic-markdown-preview-plugins">liushoukun</vendor>
   <description><![CDATA[
-<h2>English</h2>
-<p><b>AntV Infographic Markdown Preview</b> brings syntax highlighting and live Markdown preview for <a href="https://github.com/antvis/infographic">AntV Infographic</a> to <b>JetBrains IDEs</b>. It supports fenced <code>infographic</code> code blocks and standalone <code>.infographic</code> files. Requires the official <b>Markdown</b> plugin; preview uses <code>@antv/infographic</code> (SVG) through the Markdown preview and JCEF.</p>
+<h2>AntV Infographic Markdown Preview</h2>
+<p>brings syntax highlighting and live Markdown preview for <a href="https://github.com/antvis/infographic">AntV Infographic</a> to <b>JetBrains IDEs</b>. It supports fenced <code>infographic</code> code blocks and standalone <code>.infographic</code> files. Requires the official <b>Markdown</b> plugin; preview uses <code>@antv/infographic</code> (SVG) through the Markdown preview and JCEF.</p>
 <p>Sample: <code>examples/sample.md</code>. License: MIT. Engine: <a href="https://infographic.antv.vision">infographic.antv.vision</a>.</p>
 <ul>
   <li><b>Markdown</b>: Recognizes fenced code blocks with language <code>infographic</code>.</li>
@@ -14,7 +14,6 @@
   <li><b>Local workflow</b>: No external service—write and preview inside the IDE.</li>
 </ul>
 
-<h2>中文</h2>
 <p><b>AntV Infographic Markdown Preview</b> 在 <b>JetBrains IDE</b> 中为 <a href="https://github.com/antvis/infographic">AntV Infographic</a> 提供语法高亮与 Markdown 实时预览，支持 <code>infographic</code> 围栏代码块与独立的 <code>.infographic</code> 源文件。需安装官方 <b>Markdown</b> 插件；通过 Markdown 预览与 JCEF 使用 <code>@antv/infographic</code> 输出 SVG。</p>
 <p>示例见 <code>examples/sample.md</code>。许可：MIT。引擎：<a href="https://infographic.antv.vision">infographic.antv.vision</a>。</p>
 <ul>
